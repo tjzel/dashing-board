@@ -4,3 +4,4 @@
 .vscode
 *.dSYM
 bin
+elm.log
