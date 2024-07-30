@@ -1,7 +1,7 @@
 .venv
 .DS_Store
-.idea
 .vscode
 *.dSYM
 bin
+build
 elm.log
