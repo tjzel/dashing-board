@@ -5,9 +5,12 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(
         controller
-        src/requests.h
         src/main.cpp
         src/parser.cpp
+        src/DataFrame.cpp
+        src/DataFrame.hpp
+        src/RequestHandler.cpp
+        src/RequestHandler.hpp
 )
 
 set_target_properties(

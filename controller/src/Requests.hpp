@@ -1,41 +1,41 @@
-#ifndef REQUESTS_H
-#define REQUESTS_H
+#ifndef REQUESTS_HPP
+#define REQUESTS_HPP
 #include <string>
 #include <vector>
 
 namespace Literals {
-    constexpr char RESET[] = "ATZ";
-    constexpr char ECHO_OFF[] = "ATE0";
-    constexpr char ECHO_ON[] = "ATE1";
-    constexpr char LINEFEED_OFF[] = "ATL0";
-    constexpr char LINEFEED_ON[] = "ATL1";
-    constexpr char SPACES_OFF[] = "ATS0";
-    constexpr char SPACES_ON[] = "ATS1";
-    constexpr char HEADER_OFF[] = "ATH0";
-    constexpr char HEADER_ON[] = "ATH1";
+  constexpr char RESET[] = "ATZ";
+  constexpr char ECHO_OFF[] = "ATE0";
+  constexpr char ECHO_ON[] = "ATE1";
+  constexpr char LINEFEED_OFF[] = "ATL0";
+  constexpr char LINEFEED_ON[] = "ATL1";
+  constexpr char SPACES_OFF[] = "ATS0";
+  constexpr char SPACES_ON[] = "ATS1";
+  constexpr char HEADER_OFF[] = "ATH0";
+  constexpr char HEADER_ON[] = "ATH1";
 
-    constexpr char AVAILABLE_DATA_COMMANDS_00_1F[] = "0100";
-    constexpr char ENGINE_LOAD[] = "0104";
-    constexpr char ENGINE_RPM[] = "010C";
-    constexpr char VEHICLE_SPEED[] = "010D";
-    constexpr char THROTTLE_POSITION[] = "0111";
-    constexpr char UPTIME[] = "011F";
+  constexpr char AVAILABLE_DATA_COMMANDS_00_1F[] = "0100";
+  constexpr char ENGINE_LOAD[] = "0104";
+  constexpr char ENGINE_RPM[] = "010C";
+  constexpr char VEHICLE_SPEED[] = "010D";
+  constexpr char THROTTLE_POSITION[] = "0111";
+  constexpr char UPTIME[] = "011F";
 
-    constexpr char AVAILABLE_DATA_COMMANDS_20_3F[] = "0120";
-    constexpr char FUEL_LEVEL[] = "012F";
+  constexpr char AVAILABLE_DATA_COMMANDS_20_3F[] = "0120";
+  constexpr char FUEL_LEVEL[] = "012F";
 
-    constexpr char AVAILABLE_DATA_COMMANDS_40_5F[] = "0140";
-    constexpr char ABSOLUTE_LOAD[] = "0143";
-    constexpr char RELATIVE_THROTTLE_POSITION[] = "0145";
-    constexpr char ENGINE_FUEL_RATE[] = "015E";
+  constexpr char AVAILABLE_DATA_COMMANDS_40_5F[] = "0140";
+  constexpr char ABSOLUTE_LOAD[] = "0143";
+  constexpr char RELATIVE_THROTTLE_POSITION[] = "0145";
+  constexpr char ENGINE_FUEL_RATE[] = "015E";
 
-    constexpr char AVAILABLE_DATA_COMMANDS_60_7F[] = "0160";
+  constexpr char AVAILABLE_DATA_COMMANDS_60_7F[] = "0160";
 
-    constexpr char AVAILABLE_DATA_COMMANDS_80_9F[] = "0180";
+  constexpr char AVAILABLE_DATA_COMMANDS_80_9F[] = "0180";
 
-    constexpr char AVAILABLE_DATA_COMMANDS_A0_BF[] = "01A0";
+  constexpr char AVAILABLE_DATA_COMMANDS_A0_BF[] = "01A0";
 
-    constexpr char AVAILABLE_DATA_COMMANDS_C0_DF[] = "01C0";
+  constexpr char AVAILABLE_DATA_COMMANDS_C0_DF[] = "01C0";
 }
 
 namespace Requests {
@@ -70,6 +70,7 @@ namespace Requests {
 
   struct AVAILABLE_DATA_COMMANDS_00_1F : IntegerCommand<Literals::AVAILABLE_DATA_COMMANDS_00_1F> { };
   struct ENGINE_LOAD : FloatCommand<Literals::ENGINE_LOAD> { };
+
   struct ENGINE_RPM : IntegerCommand<Literals::ENGINE_RPM> { };
   struct VEHICLE_SPEED : IntegerCommand<Literals::VEHICLE_SPEED> { };
   struct THROTTLE_POSITION : FloatCommand<Literals::THROTTLE_POSITION> { };
@@ -96,4 +97,4 @@ namespace Requests {
       AVAILABLE_DATA_COMMANDS_00_1F::toString(), AVAILABLE_DATA_COMMANDS_20_3F::toString(), AVAILABLE_DATA_COMMANDS_40_5F::toString(), AVAILABLE_DATA_COMMANDS_60_7F::toString(), AVAILABLE_DATA_COMMANDS_80_9F::toString(), AVAILABLE_DATA_COMMANDS_A0_BF::toString(), AVAILABLE_DATA_COMMANDS_C0_DF::toString()
   };
 } // namespace Requests
-#endif // REQUESTS_H
+#endif // REQUESTS_HPP

@@ -1,7 +1,14 @@
-.venv
+# MacOS
 .DS_Store
+
+# VSCode
 .vscode
+
+# Simulator
+.venv
+elm.log
+
+# Build and debug
 *.dSYM
 bin
 build
-elm.log

@@ -1,5 +1,5 @@
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef PARSER_HPP
+#define PARSER_HPP
 #include <string>
 
 class Parser {
@@ -20,4 +20,4 @@ private:
   static int parseRPM(const std::string& response);
   static int parseEngineFuelRate(const std::string& response);
 };
-#endif // PARSER_H
+#endif // PARSER_HPP
