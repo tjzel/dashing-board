@@ -21,15 +21,16 @@ public:
     DataFrame getDataFrame();
 
 private:
+    std::size_t availableData();
+    std::string readAllAvailableData();
+
     std::string request(const std::string& rawCommand);
+    bool isCommandAvailable(const std::string& command) const;
 
     boost::asio::io_service io;
     boost::asio::serial_port serial;
     boost::asio::streambuf inputBuffer;
-    std::map<std::string, bool> availableCommands;
-
-    static const std::string requestDelimiter;
-    static const std::string responseDelimiter;
+    std::map<const std::string, bool> availableCommands;
 
 };
 #define REQUESTHANDLER_HPP

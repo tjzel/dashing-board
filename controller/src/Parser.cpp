@@ -1,16 +1,38 @@
-#include "parser.h"
-#include "requests.h"
+#include "Parser.hpp"
+#include "Requests.hpp"
+
+std::string Parser::headerPrefix = "41";
 
 int Parser::getByte(const std::string& response, const int pos) {
-  const int startIndex = 6 + pos * 3;
-  if (startIndex >= response.size()) {
+  const int startIndex = pos * 2;
+  if (startIndex + 2 > response.size()) {
     return -1;
   }
   const auto byte = std::stoi(response.substr(startIndex, 2), nullptr, 16);
   return byte;
 }
 
+std::string Parser::getData(const std::string& response, const std::string& command) {
+  const auto header = headerPrefix + command.substr(2, 2);
+  const auto startIndex = response.find(header);
+  if (startIndex == std::string::npos) {
+    return "";
+  }
+
+  return response.substr(startIndex + header.size());
+}
+
 void Parser::parseIgnore(const std::string& response) { }
+
+std::vector<int> Parser::parseAvailability(const std::string& response, const std::string& command) {
+  const auto data = getData(response, command);
+  std::vector<int> result;
+  for( auto character : data) {
+    const auto value = std::stoi(std::string(1, character), nullptr, 16);
+    result.push_back(value);
+  }
+  return result;
+}
 
 double Parser::parsePercentageSingleByte(const std::string& response) {
   const auto A = getByte(response, 0);
@@ -46,50 +68,4 @@ int Parser::parseEngineFuelRate(const std::string& response) {
   const auto B = getByte(response, 1);
   int engineFuelRate = ((A * 256) + B) / 20;
   return engineFuelRate;
-}
-
-template<>
-double Parser::parse<Requests::ENGINE_LOAD>(const std::string& response) {
-  return parsePercentageSingleByte(response);
-}
-
-template <>
-int Parser::parse<Requests::ENGINE_RPM>(const std::string& response) {
-  return parseRPM(response);
-}
-
-template <>
-int Parser::parse<Requests::VEHICLE_SPEED>(const std::string& response) {
-  return parseIdentitySingleByte(response);
-}
-
-template<>
-double Parser::parse<Requests::THROTTLE_POSITION>(const std::string& response) {
-  return parsePercentageSingleByte(response);
-}
-
-template<>
-int Parser::parse<Requests::UPTIME>(const std::string& response) {
-  return parseIdentityDoubleByte(response);
-}
-
-template<>
-double Parser::parse<Requests::FUEL_LEVEL>(const std::string& response) {
-  return parsePercentageSingleByte(response);
-}
-
-
-template<>
-double Parser::parse<Requests::ABSOLUTE_LOAD>(const std::string& response) {
-  return parsePercentageDoubleByte(response);
-}
-
-template<>
-double Parser::parse<Requests::RELATIVE_THROTTLE_POSITION>(const std::string& response) {
-  return parsePercentageSingleByte(response);
-}
-
-template<>
-double Parser::parse<Requests::ENGINE_FUEL_RATE>(const std::string& response) {
-  return parseEngineFuelRate(response);
 }

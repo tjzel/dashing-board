@@ -12,3 +12,4 @@ elm.log
 *.dSYM
 bin
 build
+.cache

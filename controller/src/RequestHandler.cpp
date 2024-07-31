@@ -1,18 +1,14 @@
-#include "RequestHandler.hpp"
-#include "Requests.hpp"
-#include "Parser.hpp"
+#include <RequestHandler.hpp>
+#include <Parser.hpp>
 #include <iostream>
 
-const std::string RequestHandler::requestDelimiter = "\r";
-const std::string RequestHandler::responseDelimiter = "\r\r>";
-
-RequestHandler::RequestHandler(const std::string& serialPortPath) : io(), serial(boost::asio::serial_port(io, serialPortPath)) {
+RequestHandler::RequestHandler(const std::string& serialPortPath) : serial(boost::asio::serial_port(io, serialPortPath)), availableCommands(
+    Requests::defaultAvailable) {
     serial.set_option(boost::asio::serial_port_base::baud_rate(38400));
     serial.set_option(boost::asio::serial_port_base::character_size(8));
     serial.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
     serial.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
     serial.set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::none));
-
     get<Requests::RESET>();
     get<Requests::ECHO_OFF>();
     get<Requests::HEADER_OFF>();
@@ -33,20 +29,16 @@ void RequestHandler::loadAvailableDataCommands() {
     auto commandOffset = 0;
     for (auto& command : Requests::AVAILABLE_DATA_COMMANDS) {
         const auto response = request(command);
-        const std::string startSequence = "41 " + std::string(command).substr(2, 2) + " ";
-        const auto startIndex = response.find(startSequence) + startSequence.size();
-        if (startIndex < 5 || startIndex + 4 * 3 - 1 >= response.size()) {
-            return;
-        }
-        const auto encodedAvailability = response.substr(startIndex, 4 * 3 - 1);
+        // const std::string startSequence = "41" + std::string(command).substr(2, 2);
+        // const auto startIndex = response.find(startSequence) + startSequence.size();
+        // if (startIndex < 5 || startIndex + 4 * 2 - 1 >= response.size()) {
+        //     return;
+        // }
+        // const auto encodedAvailability = response.substr(startIndex, 4 * 3 - 1);
+        const auto encodedAvailability = Parser::parseAvailability(response, command);
 
         auto wordOffset = 0;
-        for (const auto character : encodedAvailability) {
-            if (character == ' ') {
-                continue;
-            }
-            const auto value = std::stoi(std::string(1, character), nullptr, 16);
-
+        for (const auto value : encodedAvailability) {
             for (int bit = 0; bit < 4; bit++) {
                 const auto commandAsInt = 1 + bit + wordOffset + commandOffset;
                 const auto decodedCommand = "01" + std::format("{:0{}X}", commandAsInt, 2);
@@ -69,15 +61,15 @@ void RequestHandler::printAvailableCommands() const {
 
 void RequestHandler::printAvailableForDataFrame() const {
     std::cout << "Available for data frame:" << std::endl;
-    std::cout << "    Engine load: " << availableCommands.at(Requests::ENGINE_LOAD::toString()) << std::endl;
-    std::cout << "    Engine RPM: " << availableCommands.at(Requests::ENGINE_RPM::toString()) << std::endl;
-    std::cout << "    Vehicle speed: " << availableCommands.at(Requests::VEHICLE_SPEED::toString()) << std::endl;
-    std::cout << "   Throttle position: " << availableCommands.at(Requests::THROTTLE_POSITION::toString()) << std::endl;
-    std::cout << "    Uptime: " << availableCommands.at(Requests::UPTIME::toString()) << std::endl;
-    std::cout << "    Fuel level: " << availableCommands.at(Requests::FUEL_LEVEL::toString()) << std::endl;
-    std::cout << "    Absolute load: " << availableCommands.at(Requests::ABSOLUTE_LOAD::toString()) << std::endl;
-    std::cout << "    Relative throttle position: " << availableCommands.at(Requests::RELATIVE_THROTTLE_POSITION::toString()) << std::endl;
-    std::cout << "    Engine fuel rate: " << availableCommands.at(Requests::ENGINE_FUEL_RATE::toString()) << std::endl;
+    std::cout << "    Engine load: " << isCommandAvailable(Requests::ENGINE_LOAD::toString()) << std::endl;
+    std::cout << "    Engine RPM: " << isCommandAvailable(Requests::ENGINE_RPM::toString()) << std::endl;
+    std::cout << "    Vehicle speed: " << isCommandAvailable(Requests::VEHICLE_SPEED::toString()) << std::endl;
+    std::cout << "   Throttle position: " << isCommandAvailable(Requests::THROTTLE_POSITION::toString()) << std::endl;
+    std::cout << "    Uptime: " << isCommandAvailable(Requests::UPTIME::toString()) << std::endl;
+    std::cout << "    Fuel level: " << isCommandAvailable(Requests::FUEL_LEVEL::toString()) << std::endl;
+    std::cout << "    Absolute load: " << isCommandAvailable(Requests::ABSOLUTE_LOAD::toString()) << std::endl;
+    std::cout << "    Relative throttle position: " << isCommandAvailable(Requests::RELATIVE_THROTTLE_POSITION::toString()) << std::endl;
+    std::cout << "    Engine fuel rate: " << isCommandAvailable(Requests::ENGINE_FUEL_RATE::toString()) << std::endl;
 }
 
 DataFrame RequestHandler::getDataFrame() {
@@ -89,25 +81,64 @@ DataFrame RequestHandler::getDataFrame() {
         get<Requests::FUEL_LEVEL>(),
         get<Requests::ABSOLUTE_LOAD>(),
         get<Requests::RELATIVE_THROTTLE_POSITION>(),
-        get<Requests::ENGINE_FUEL_RATE>() };
+        get<Requests::ENGINE_FUEL_RATE>(),
+    };
+}
+
+std::size_t RequestHandler::availableData() {
+    int available = 0;
+
+    // Convert the Boost.Asio serial port to a native handle
+    int fd = serial.native_handle();
+
+    // Use ioctl to check the number of bytes available for reading
+    if (ioctl(fd, FIONREAD, &available) < 0) {
+        std::cerr << "Error in ioctl: " << strerror(errno) << std::endl;
+        return 0;
+    }
+
+    return static_cast<std::size_t>(available);
+}
+
+std::string RequestHandler::readAllAvailableData() {
+    std::string result;
+    std::size_t available = availableData();
+
+    if (available > 0) {
+        std::vector<char> buffer(available);
+
+        // Read the available data from the serial port
+        boost::asio::read(serial, boost::asio::buffer(buffer, available));
+
+        result.assign(buffer.begin(), buffer.end());
+    }
+
+    return result;
 }
 
 std::string RequestHandler::request(const std::string& rawCommand) {
-    if (!availableCommands.contains(rawCommand) || !availableCommands.at(rawCommand)) {
+    if (!isCommandAvailable(rawCommand)) {
         return "";
     }
-    std::string command = rawCommand + requestDelimiter;
-    write(serial, boost::asio::buffer(command));
+    std::string command = rawCommand + Requests::requestDelimiter;
+    boost::asio::write(serial, boost::asio::buffer(command));
 
-    boost::asio::read_until(serial, inputBuffer, responseDelimiter);
+    boost::asio::read_until(serial, inputBuffer, Requests::responseDelimiter);
 
     std::istream inputStream(&inputBuffer);
     std::string rawResponse;
     std::getline(inputStream, rawResponse);
 
+    // std::string rawResponse = readAllAvailableData();
+
     std::string response;
+    // Strip garbage
     std::ranges::copy_if(rawResponse, std::back_inserter(response),
         [](unsigned char c) { return std::isalnum(c); });
     // std::cout << "--- Raw response ---" << std::endl << response << std::endl << "--- End of raw response ---" << std::endl;
     return response;
+}
+
+bool RequestHandler::isCommandAvailable(const std::string& command) const {
+    return availableCommands.contains(command) && availableCommands.at(command);
 }

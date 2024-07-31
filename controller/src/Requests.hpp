@@ -2,6 +2,7 @@
 #define REQUESTS_HPP
 #include <string>
 #include <vector>
+#include <map>
 
 namespace Literals {
   constexpr char RESET[] = "ATZ";
@@ -96,5 +97,42 @@ namespace Requests {
     AVAILABLE_DATA_COMMANDS{
       AVAILABLE_DATA_COMMANDS_00_1F::toString(), AVAILABLE_DATA_COMMANDS_20_3F::toString(), AVAILABLE_DATA_COMMANDS_40_5F::toString(), AVAILABLE_DATA_COMMANDS_60_7F::toString(), AVAILABLE_DATA_COMMANDS_80_9F::toString(), AVAILABLE_DATA_COMMANDS_A0_BF::toString(), AVAILABLE_DATA_COMMANDS_C0_DF::toString()
   };
+
+  const std::map<const std::string, bool> defaultAvailable{
+    {
+      RESET::toString(), true
+    },
+    {
+      ECHO_OFF::toString(), true
+    },
+    {
+      ECHO_ON::toString(), true
+    },
+    {
+      LINEFEED_OFF::toString(), true
+    },
+    {
+      LINEFEED_ON::toString(), true
+    },
+    {
+      SPACE_OFF::toString(), true
+    },
+    {
+      SPACE_ON::toString(), true
+    },
+    {
+      HEADER_OFF::toString(), true
+    },
+    {
+      HEADER_ON::toString(), true
+    },
+    {
+      AVAILABLE_DATA_COMMANDS_00_1F::toString(), true
+    },
+  };
+
+  const std::string requestDelimiter = "\r";
+  const std::string responseDelimiter = "\r\r>";
+
 } // namespace Requests
 #endif // REQUESTS_HPP
