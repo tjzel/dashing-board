@@ -1,0 +1,317 @@
+#include "Requests.hpp"
+#include <RequestHandler.hpp>
+#include <Parser.hpp>
+#include <Arduino.h>
+// #include <format>
+
+RequestHandler::RequestHandler(Stream& outSerial, Stream& sniffSerial) : _outSerial(outSerial), _sniffSerial(sniffSerial), _availableCommands(
+    Requests::defaultAvailable) {
+
+    // get<Requests::SET_DEFAULTS>();
+    // get<Requests::RESET>();
+    // get<Requests::ECHO_OFF>();
+    // get<Requests::HEADER_OFF>();
+    // get<Requests::LINEFEED_OFF>();
+    // get<Requests::SPACE_OFF>();
+
+    // get<Requests::SET_TIMEOUT>();
+    // get<Requests::AUTO_PROTOCOL>();
+
+    // availableCommands[Requests::ENGINE_RPM::toString()] = true;
+
+    // loadAvailableDataCommands();
+}
+
+template <class TCommand>
+typename TCommand::Type RequestHandler::get(const int responseExpected) {
+    const auto command = TCommand::value;
+    // const auto clock = std::chrono::high_resolution_clock::now();
+    auto response = request(command, responseExpected);
+    // const auto requestTime = std::chrono::high_resolution_clock::now();
+    // const auto requestDuration = std::chrono::duration_cast<std::chrono::milliseconds>(requestTime - clock);
+    const auto result = Parser::parse<TCommand>(response);
+    // const auto parseTime = std::chrono::high_resolution_clock::now();
+    // const auto parseDuration =  std::chrono::duration_cast<std::chrono::milliseconds>(parseTime - requestTime);
+    // if(requestDuration.count() > 0){
+    // std::cout << "Request took: " << requestDuration.count() << " ms" << std::endl;
+    // std::cout << "Parse took: " << parseDuration.count() << " ms" << std::endl;
+    // }
+
+    return result;
+    // return Parser::parse<TCommand>(response);
+}
+
+void RequestHandler::loadAvailableDataCommands() {
+    auto commandOffset = 0;
+    for (auto& command : Requests::AVAILABLE_DATA_COMMANDS) {
+        const auto response = request(command);
+        // const std::string startSequence = "41" + std::string(command).substr(2, 2);
+        // const auto startIndex = response.find(startSequence) + startSequence.size();
+        // if (startIndex < 5 || startIndex + 4 * 2 - 1 >= response.size()) {
+        //     return;
+        // }
+        // const auto encodedAvailability = response.substr(startIndex, 4 * 3 - 1);
+        const auto encodedAvailability = Parser::parseAvailability(response, command);
+
+        auto wordOffset = 0;
+        for (const auto value : encodedAvailability) {
+            for (int bit = 0; bit < 4; bit++) {
+                const auto commandAsInt = 1 + bit + wordOffset + commandOffset;
+                // const auto decodedCommand = "01" + std::format("{:0{}X}", commandAsInt, 2);
+                const uint8_t decodedCommand[] = { 0x01, commandAsInt };
+                const bool isAvailable = value & (1 << (3 - bit));
+                _availableCommands[decodedCommand] = isAvailable;
+            }
+
+            wordOffset += 4;
+
+            for (int bit = 0; bit < 4; bit++) {
+                const auto commandAsInt = 1 + bit + wordOffset + commandOffset;
+                // const auto decodedCommand = "01" + std::format("{:0{}X}", commandAsInt, 2);
+                const uint8_t decodedCommand[] = { 0x01, commandAsInt };
+                const bool isAvailable = value & (1 << (3 - bit));
+                _availableCommands[decodedCommand] = isAvailable;
+            }
+        }
+        commandOffset += 32;
+    }
+}
+
+void RequestHandler::printAvailableCommands() const {
+    _outSerial.println("Available commands:");
+    for (const auto& [key, isAvailable] : _availableCommands) {
+        _outSerial.print("    ");
+        for (int i = 0; i < 4; i++) {
+            _outSerial.print(key[i], HEX);
+        }
+        _outSerial.print(": ");
+        _outSerial.println(isAvailable);
+        _outSerial.println();
+    }
+}
+
+void RequestHandler::printAvailableForDataFrame() const {
+    // std::cout << "Available for data frame:" << "\n";
+    _outSerial.println("Available for data frame:");
+    _outSerial.print("    Engine load: ");
+    _outSerial.println(isCommandAvailable(Requests::ENGINE_LOAD::value));
+    _outSerial.print("    Engine RPM: ");
+    _outSerial.println(isCommandAvailable(Requests::ENGINE_RPM::value));
+    _outSerial.print("    Vehicle speed: ");
+    _outSerial.println(isCommandAvailable(Requests::VEHICLE_SPEED::value));
+    _outSerial.print("   Throttle position: ");
+    _outSerial.println(isCommandAvailable(Requests::THROTTLE_POSITION::value));
+    _outSerial.print("    Uptime: ");
+    _outSerial.println(isCommandAvailable(Requests::UPTIME::value));
+    _outSerial.print("    Fuel level: ");
+    _outSerial.println(isCommandAvailable(Requests::FUEL_LEVEL::value));
+    _outSerial.print("    Absolute load: ");
+    _outSerial.println(isCommandAvailable(Requests::ABSOLUTE_LOAD::value));
+    _outSerial.print("    Relative throttle position: ");
+    _outSerial.println(isCommandAvailable(Requests::RELATIVE_THROTTLE_POSITION::value));
+    _outSerial.print("    Engine fuel rate: ");
+    _outSerial.println(isCommandAvailable(Requests::ENGINE_FUEL_RATE::value));
+    _outSerial.println();
+}
+
+DataFrame RequestHandler::getDataFrame() {
+    return DataFrame{
+    -1,
+    get<Requests::ENGINE_RPM>(),
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+    // get<Requests::ENGINE_LOAD>(8),
+    // get<Requests::ENGINE_RPM>(),
+    // get<Requests::VEHICLE_SPEED>(),
+    // get<Requests::THROTTLE_POSITION>(),
+    // get<Requests::UPTIME>(),
+    // get<Requests::FUEL_LEVEL>(),
+    // get<Requests::ABSOLUTE_LOAD>(),
+    // get<Requests::RELATIVE_THROTTLE_POSITION>(),
+    // get<Requests::ENGINE_FUEL_RATE>(),
+    };
+}
+
+bool RequestHandler::sniff() {
+    uint8_t header;
+    do {
+        while (_sniffSerial.available() == 0);
+        header = _sniffSerial.read();
+        if (header != 0) {
+            _outSerial.print("Header: ");
+            _outSerial.println(header, HEX);
+        }
+    } while (!(header >= 0x80 && header <= 0x8f || header >= 0xc0 && header <= 0xcf));
+
+
+
+    uint8_t dataLength = header % 0x10;
+    while (_sniffSerial.available() == 0);
+    const uint8_t receiver = _sniffSerial.read();
+    while (_sniffSerial.available() == 0);
+    const uint8_t sender = _sniffSerial.read();
+
+    uint8_t data[dataLength];
+    for (int i = 0; i < dataLength; i++) {
+        while (_sniffSerial.available() == 0);
+        data[i] = _sniffSerial.read();
+    }
+
+    while (_sniffSerial.available() == 0);
+    const uint8_t checksum = _sniffSerial.read();
+
+    if (header >= 0x80 && header <= 0x8f) {
+        _outSerial.println("Echo read");
+        return true;
+    }
+
+    _outSerial.println("Frame received:");
+    _outSerial.print("    Header: ");
+    _outSerial.println(header, HEX);
+    _outSerial.print("    Data length: ");
+    _outSerial.println(dataLength);
+    _outSerial.print("    Receiver: ");
+    _outSerial.println(receiver, HEX);
+    _outSerial.print("    Sender: ");
+    _outSerial.println(sender, HEX);
+    // _outSerial.print("    Mode: ");
+    // _outSerial.println(mode, HEX);
+    // _outSerial.print("    PID: ");
+    // _outSerial.println(PID, HEX);
+    _outSerial.print("    Data: ");
+    for (int i = 0; i < dataLength; i++) {
+        _outSerial.print(data[i], HEX);
+        _outSerial.print(" ");
+    }
+    _outSerial.println();
+    _outSerial.print("    Checksum: ");
+    _outSerial.println(checksum, HEX);
+
+    // C1 33 F1 81 66
+    if (header == 0xc1 && receiver == 0x33 && sender == 0xf1 && dataLength > 0 && data[0] == 0x81 && checksum == 0x66) {
+        // 0x83 0xF1 0x11 0xC1 0x8F 0xEF 0xC4
+        _sniffSerial.write(0x83);
+        _sniffSerial.write(0xF1);
+        _sniffSerial.write(0x11);
+        _sniffSerial.write(0xC1);
+        _sniffSerial.write(0x8F);
+        _sniffSerial.write(0xEF);
+        _sniffSerial.write(0xC4);
+        _outSerial.println("ACK sent");
+        return true;
+    }
+
+    // if (PID == 0x0c && data.size() >= 2) {
+    //     Parser::parse<Requests::ENGINE_RPM>(data);
+    //     _outSerial.print("Engine RPM: ");
+    //     _outSerial.println(Parser::parse<Requests::ENGINE_RPM>(data));
+    //     return true;
+    // }
+    // else if (PID == 0x0d && data.size() >= 1) {
+    //     Parser::parse<Requests::VEHICLE_SPEED>(data);
+    //     _outSerial.print("Vehicle speed: ");
+    //     _outSerial.println(Parser::parse<Requests::VEHICLE_SPEED>(data));
+    //     return true;
+    // }
+
+    return false;
+}
+
+std::vector<uint8_t> RequestHandler::request(const uint8_t command[], const int responseExpected) {
+    // Serial.println("Requesting with KLineSerial");
+
+    const auto bufferSpace = _sniffSerial.availableForWrite();
+    _outSerial.print("Buffer space: ");
+    _outSerial.println(bufferSpace);
+
+    const uint8_t packet[] = { 0xc2, 0x33, 0xF1, command[0], command[1], 0xc2 + 0x33 + 0xf1 + command[0] + command[1] % 0x100 };
+    _sniffSerial.write(packet, sizeof(packet));
+
+    _outSerial.println("Request sent:");
+    for (int i = 0; i < sizeof(packet); i++) {
+        _outSerial.print(packet[i], HEX);
+        _outSerial.print(" ");
+    }
+    _outSerial.println();
+
+
+    auto attemptsLeft = 128;
+
+    while (attemptsLeft > 0) {
+        while (_sniffSerial.available() < 3);
+        const uint8_t header = _sniffSerial.read();
+        if (!(header >= 0x82 && header <= 0x8f)) {
+            --attemptsLeft;
+            continue;
+        }
+        const uint8_t dataLength = header % 0x10 - 2;
+        if (dataLength < 2) {
+            --attemptsLeft;
+            continue;
+        }
+        const uint8_t receiver = _sniffSerial.read();
+        if (receiver != 0xf1) {
+            --attemptsLeft;
+            continue;
+        }
+        const uint8_t sender = _sniffSerial.read();
+        // Let's ignore sender for now.
+
+        while (_sniffSerial.available() < dataLength);
+        const uint8_t mode = _sniffSerial.read();
+        if (mode != 0x01) {
+            --attemptsLeft;
+            continue;
+        }
+        const uint8_t PID = _sniffSerial.read();
+        if (PID != 0x0c && PID != 0x0d) {
+            --attemptsLeft;
+            continue;
+        }
+
+        const auto obdDataLength = dataLength - 2;
+
+        std::vector<uint8_t> data(obdDataLength);
+        for (int i = 0; i < dataLength; i++) {
+            data[i] = _sniffSerial.read();
+        }
+
+        while (_sniffSerial.available() == 0);
+        const uint8_t checksum = _sniffSerial.read();
+
+        _outSerial.println("Frame received:");
+        _outSerial.print("    Header: ");
+        _outSerial.println(header, HEX);
+        _outSerial.print("    Data length: ");
+        _outSerial.println(dataLength);
+        _outSerial.print("    Receiver: ");
+        _outSerial.println(receiver, HEX);
+        _outSerial.print("    Sender: ");
+        _outSerial.println(sender, HEX);
+        _outSerial.print("    Mode: ");
+        _outSerial.println(mode, HEX);
+        _outSerial.print("    PID: ");
+        _outSerial.println(PID, HEX);
+        _outSerial.print("    Data: ");
+        for (int i = 0; i < dataLength; i++) {
+            _outSerial.print(data[i], HEX);
+            _outSerial.print(" ");
+        }
+        _outSerial.println();
+        _outSerial.print("    Checksum: ");
+        _outSerial.println(checksum, HEX);
+        return data;
+    }
+
+    _outSerial.println("Maximum attempts reached");
+    return {};
+}
+
+bool RequestHandler::isCommandAvailable(const uint8_t command[]) const {
+    return _availableCommands.find(command) != _availableCommands.end() && _availableCommands.at(command);
+}

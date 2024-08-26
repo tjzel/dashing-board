@@ -1,0 +1,16 @@
+# MacOS
+.DS_Store
+
+# VSCode
+.vscode
+
+# Simulator
+.venv
+elm.log
+
+# clangd
+.cache
+compile_commands.json
+
+# binaries
+bin

@@ -1,0 +1,16 @@
+#ifndef DAEMON_HPP
+#define DAEMON_HPP
+#include <string>
+#include <RequestHandler.hpp>
+
+// class Daemon {
+// public:
+//     void start();
+//     explicit Daemon(HardwareSerial& serial);
+
+
+// private:
+//     RequestHandler _requestHandler;
+// };
+
+#endif //DAEMON_HPP

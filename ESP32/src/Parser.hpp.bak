@@ -1,0 +1,85 @@
+#ifndef PARSER_HPP
+#define PARSER_HPP
+#include <string>
+#include <Requests.hpp>
+
+class Parser {
+public:
+  template <class TCommand>
+  static typename TCommand::Type parse(std::vector<uint8_t> response);
+  static std::vector<int> parseAvailability(std::vector<uint8_t> response, const uint8_t* command);
+
+private:
+  template <class TCommand>
+  static typename TCommand::Type parseData(std::vector<uint8_t> data);
+
+  static std::vector<uint8_t> getData(std::vector<uint8_t> response, const uint8_t* command);
+  static int getByte(std::vector<uint8_t> data, int pos);
+  static std::string headerPrefix;
+
+  static void parseIgnore(std::vector<uint8_t> data);
+  static double parsePercentageSingleByte(std::vector<uint8_t> data);
+  static double parsePercentageDoubleByte(std::vector<uint8_t> data);
+  static int parseIdentitySingleByte(std::vector<uint8_t> data);
+  static int parseIdentityDoubleByte(std::vector<uint8_t> data);
+  static int parseRPM(std::vector<uint8_t> data);
+  static int parseEngineFuelRate(std::vector<uint8_t> data);
+};
+
+template <class TCommand>
+typename TCommand::Type Parser::parseData([[maybe_unused]] std::vector<uint8_t> data) {
+  return -1;
+}
+
+template <class TCommand>
+typename TCommand::Type Parser::parse(std::vector<uint8_t> response) {
+  const auto data = getData(response, TCommand::value);
+  return Parser::parseData<TCommand>(data);
+}
+
+template<>
+inline double Parser::parseData<Requests::ENGINE_LOAD>(std::vector<uint8_t> data) {
+  return parsePercentageSingleByte(data);
+}
+
+template <>
+inline int Parser::parseData<Requests::ENGINE_RPM>(std::vector<uint8_t> data) {
+  return parseRPM(data);
+}
+
+template <>
+inline int Parser::parseData<Requests::VEHICLE_SPEED>(std::vector<uint8_t> data) {
+  return parseIdentitySingleByte(data);
+}
+
+template<>
+inline double Parser::parseData<Requests::THROTTLE_POSITION>(std::vector<uint8_t> data) {
+  return parsePercentageSingleByte(data);
+}
+
+template<>
+inline int Parser::parseData<Requests::UPTIME>(std::vector<uint8_t> data) {
+  return parseIdentityDoubleByte(data);
+}
+
+template<>
+inline double Parser::parseData<Requests::FUEL_LEVEL>(std::vector<uint8_t> data) {
+  return parsePercentageSingleByte(data);
+}
+
+
+template<>
+inline double Parser::parseData<Requests::ABSOLUTE_LOAD>(std::vector<uint8_t> data) {
+  return parsePercentageDoubleByte(data);
+}
+
+template<>
+inline double Parser::parseData<Requests::RELATIVE_THROTTLE_POSITION>(std::vector<uint8_t> data) {
+  return parsePercentageSingleByte(data);
+}
+
+template<>
+inline double Parser::parseData<Requests::ENGINE_FUEL_RATE>(std::vector<uint8_t> data) {
+  return parseEngineFuelRate(data);
+}
+#endif // PARSER_HPP
