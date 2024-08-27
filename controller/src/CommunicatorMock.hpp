@@ -4,11 +4,9 @@
 #include "ICommunicator.hpp"
 #include <DiagnosticCommands.hpp>
 #include <RequestHandler.hpp>
-#include <Utils.hpp>
 #include <string>
-#include <utility>
 
-constexpr const size_t BUFFER_SIZE = 128;
+constexpr size_t BUFFER_SIZE = 128;
 
 using ByteBuffer = std::array<uint8_t, BUFFER_SIZE>;
 
@@ -38,25 +36,25 @@ struct OBD2Message {
   std::vector<uint8_t> data;
 };
 
-bool isOBD2Message(const struct Message &message);
+bool isOBD2Message(const Message &message);
 
 class CommunicatorMock {
 public:
   uint8_t read();
 
-  void write(const std::vector<uint8_t> message);
+  void write(const std::vector<uint8_t> &message);
 
-  void write(const uint8_t byte);
+  void write(uint8_t byte);
 
-  void print(const uint8_t byte);
+  static void print(uint8_t byte);
 
-  void print(const std::string str);
+  static void print(const std::string &str);
 
-  void println(const uint8_t byte);
+  static void println(uint8_t byte);
 
-  void println(const std::string str);
+  static void println(const std::string &str);
 
-  void println();
+  static void println();
 
 private:
   bool hasValidInputMessage();
@@ -72,7 +70,7 @@ private:
         0x04,
         {0x00, 0x18, 0x00, 0x00}};
     sendResponse(response);
-  };
+  }
 
   template <> void respond<DiagnosticCommands::ENGINE_RPM>() {
     const OBD2Message response{DiagnosticCommands::ENGINE_RPM::prefix,
@@ -105,13 +103,13 @@ private:
     }
   }
 
-  ByteBuffer _outputByteBuffer;
+  ByteBuffer _outputByteBuffer{};
   ByteBuffer::iterator _outputGuard = _outputByteBuffer.begin();
-  ByteBuffer _inputByteBuffer;
+  ByteBuffer _inputByteBuffer{};
   ByteBuffer::iterator _inputBegin = _inputByteBuffer.begin();
   ByteBuffer::iterator _inputEnd = _inputByteBuffer.begin();
-  Message _lastInputMessage;
-  Message _currentInputMessage;
+  Message _lastInputMessage{};
+  Message _currentInputMessage{};
   bool _hasValidInputMessage = false;
 };
 

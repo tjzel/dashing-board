@@ -11,7 +11,7 @@ public:
             double absoluteLoad, double relativeThrottlePosition,
             double engineFuelRate);
 
-  [[nodiscard]] std::string toString() const;
+  explicit operator std::string() const;
 
 private:
   template <class TNumeric> static bool isValid(TNumeric value) {

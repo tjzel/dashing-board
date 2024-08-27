@@ -4,9 +4,9 @@
 #include <map>
 #include <sstream>
 #include <string>
-#include <vector>
 
 struct CommandLiteral {
+  // TODO: CLion has a problem with <=> operator here.
   auto operator<=>(const CommandLiteral &) const = default;
 
   operator std::string() const {
@@ -26,17 +26,22 @@ struct CommandLiteral {
 
 namespace ParsingFormulas {
 template <const uint8_t TByteCount, typename TValueType> struct Identity {
-  constexpr static const uint8_t byteCount = TByteCount;
+  constexpr static uint8_t byteCount = TByteCount;
   typedef TValueType ValueType;
 };
 
 template <const uint8_t TByteCount, typename TValueType,
-          const uint8_t Multiplier>
-struct MultiplyBy : Identity<TByteCount, TValueType> {};
+          const uint8_t TMultiplier>
+struct MultiplyBy : Identity<TByteCount, TValueType> {
+  constexpr static uint8_t Multiplier = TMultiplier;
+};
 
-template <const uint8_t TByteCount, typename TValueType, const int Nominator,
-          const int Denominator>
-struct DivideBy : Identity<TByteCount, TValueType> {};
+template <const uint8_t TByteCount, typename TValueType, const int TNominator,
+          const int TDenominator>
+struct DivideBy : Identity<TByteCount, TValueType> {
+  constexpr static uint8_t Nominator = TNominator;
+  constexpr static uint8_t Denominator = TDenominator;
+};
 
 template <const uint8_t TByteCount>
 struct Percentage : DivideBy<TByteCount, double, 255, 100> {};
@@ -50,8 +55,8 @@ namespace internal {
 
 template <const uint8_t TPrefix, const uint8_t TCommand>
 struct PrefixedCommand {
-  constexpr static const uint8_t prefix = TPrefix;
-  constexpr static const uint8_t command = TCommand;
+  constexpr static uint8_t prefix = TPrefix;
+  constexpr static uint8_t command = TCommand;
   constexpr static CommandLiteral value = {TPrefix, TCommand};
 };
 
@@ -133,7 +138,7 @@ struct COMMAND_AVAILABILITY_A0_BF
 struct COMMAND_AVAILABILITY_C0_DF
     : internal::PrefixedCommandAvailability<0x01, 0xC0> {};
 
-constexpr static const std::array<CommandLiteral, 1> DEFAULT_AVAILABILITY{
+constexpr static std::array<CommandLiteral, 1> DEFAULT_AVAILABILITY{
     COMMAND_AVAILABILITY_00_1F::value};
 
 } // namespace DiagnosticCommands

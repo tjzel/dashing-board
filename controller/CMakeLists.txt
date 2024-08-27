@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.28)
 project(Controller)
 
+# Temporarily.
+set(CMAKE_BUILD_TYPE Debug)
+
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
@@ -27,5 +30,3 @@ set_target_properties(
 )
 
 include_directories(src)
-
-target_link_libraries(controller)

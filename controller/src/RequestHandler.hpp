@@ -1,12 +1,11 @@
 #ifndef REQUEST_HANDLER_HPP
 #define REQUEST_HANDLER_HPP
 #include "ICommunicator.hpp"
+#include "Utils.hpp"
 #include <DataFrame.hpp>
 #include <DiagnosticCommands.hpp>
 #include <Parser.hpp>
 #include <map>
-#include <string>
-#include <type_traits>
 #include <vector>
 
 template <ICommunicator ICommunicator> class RequestHandler {
@@ -46,13 +45,8 @@ public:
   void printAvailableCommands() const {
     _debugComm.println("Available commands:");
     for (const auto &[key, isAvailable] : _availableCommands) {
-      _debugComm.print("    ");
-      for (int i = 0; i < 4; i++) {
-        _debugComm.println(key);
-      }
-      _debugComm.print(": ");
-      _debugComm.println(isAvailable);
-      _debugComm.println();
+      _debugComm.println("    " + static_cast<std::string>(key) + " : " +
+                         (isAvailable ? "1" : "0"));
     }
   }
 
@@ -182,20 +176,14 @@ public:
 
   std::vector<uint8_t> request(CommandLiteral command) {
 
-    const std::vector<uint8_t> packet{
-        0xc2,
-        0x33,
-        0xF1,
-        command.mode,
-        command.pid,
-        static_cast<uint8_t>(0xc2 + 0x33 + 0xf1 + command.mode +
-                             command.pid % 0x100)};
-    // _comm.write(packet, sizeof(packet));
+    std::vector<uint8_t> packet{0xc2,         0x33,        0xf1,
+                                command.mode, command.pid, 0x00};
+    packet.back() = calculateChecksum(packet);
     _comm.write(packet);
 
     _debugComm.println("Request sent:");
-    for (uint i = 0; i < sizeof(packet); i++) {
-      _debugComm.println(packet[i]);
+    for (uint i = 0; i < packet.size(); i++) {
+      _debugComm.print(packet[i]);
       _debugComm.print(" ");
     }
     _debugComm.println();
@@ -246,14 +234,13 @@ public:
   }
 
   bool isCommandAvailable(CommandLiteral command) const {
-    return _availableCommands.find(command) != _availableCommands.end() &&
-           _availableCommands.at(command);
+    return _availableCommands.contains(command);
   }
 
 private:
   template <DiagnosticCommands::CommandAvailability TCommand>
   void loadAvailabilityForCommand() {
-    if (isCommandAvailable(TCommand::value)) {
+    if (!isCommandAvailable(TCommand::value)) {
       return;
     }
 
@@ -273,7 +260,6 @@ private:
 
   ICommunicator &_comm;
   ICommunicator &_debugComm;
-  uint8_t buffer[512];
   std::map<CommandLiteral, bool> _availableCommands;
 };
 #define REQUESTHANDLER_HPP

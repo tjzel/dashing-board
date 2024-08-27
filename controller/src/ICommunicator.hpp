@@ -1,6 +1,5 @@
 #ifndef ICOMMUNICATOR_HPP
 #define ICOMMUNICATOR_HPP
-#include <type_traits>
 #include <vector>
 
 template <class TCommunicator>

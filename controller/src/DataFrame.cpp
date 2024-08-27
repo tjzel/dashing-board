@@ -11,7 +11,7 @@ DataFrame::DataFrame(double engineLoad, int engineRPM, int vehicleSpeed,
       relativeThrottlePosition(relativeThrottlePosition),
       engineFuelRate(engineFuelRate) {}
 
-std::string DataFrame::toString() const {
+DataFrame::operator std::string() const {
   std::stringstream ss;
   ss << "Data frame:" << "\n";
   isValid(engineLoad) && ss << "    Engine load: " << engineLoad << "\n";
