@@ -1,5 +1,5 @@
-#ifndef DATAFRAME_HPP
-#define DATAFRAME_HPP
+#ifndef DATA_FRAME_HPP
+#define DATA_FRAME_HPP
 #include <string>
 
 // TODO: Make it generic as well.
@@ -31,4 +31,4 @@ private:
   double engineFuelRate;
 };
 
-#endif // DATAFRAME_HPP
+#endif // DATA_FRAME_HPP

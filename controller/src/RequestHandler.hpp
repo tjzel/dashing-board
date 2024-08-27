@@ -1,28 +1,17 @@
-#ifndef REQUESTHANDLER_HPP
-#define REQUESTHANDLER_HPP
+#ifndef REQUEST_HANDLER_HPP
+#define REQUEST_HANDLER_HPP
+#include "ICommunicator.hpp"
 #include <DataFrame.hpp>
 #include <DiagnosticCommands.hpp>
 #include <Parser.hpp>
 #include <map>
 #include <string>
+#include <type_traits>
 #include <vector>
 
-template <class ICommunication>
-concept CommunicationInterface =
-    requires(ICommunication comm, const uint8_t byte,
-             const std::vector<uint8_t> message, const std::string str) {
-      { comm.readByte() } -> std::convertible_to<uint8_t>;
-      { comm.write(message) } -> std::same_as<void>;
-      { comm.writeLn(str) } -> std::same_as<void>;
-      { comm.writeByte(byte) } -> std::same_as<void>;
-      { comm.writeByteLn(byte) } -> std::same_as<void>;
-      { comm.print(str) } -> std::same_as<void>;
-      { comm.println(str) } -> std::same_as<void>;
-    };
-
-template <CommunicationInterface ICommunication> class RequestHandler {
+template <ICommunicator ICommunicator> class RequestHandler {
 public:
-  explicit RequestHandler(ICommunication &comm, ICommunication &debugComm)
+  explicit RequestHandler(ICommunicator &comm, ICommunicator &debugComm)
       : _comm(comm), _debugComm(debugComm) {
     for (auto &command : DiagnosticCommands::DEFAULT_AVAILABILITY) {
       _availableCommands[command] = true;
@@ -30,25 +19,11 @@ public:
   }
 
   template <DiagnosticCommands::Command TCommand>
-  typename TCommand::Type get(const int responseExpected) {
+  typename TCommand::ParsingFormula::ValueType get() {
     const auto command = TCommand::value;
-    // const auto clock = std::chrono::high_resolution_clock::now();
-    auto response = request(command, responseExpected);
-    // const auto requestTime = std::chrono::high_resolution_clock::now();
-    // const auto requestDuration =
-    // std::chrono::duration_cast<std::chrono::milliseconds>(requestTime -
-    // clock);
+    const auto response = request(command);
     const auto result = Parser<TCommand>::parse(response);
-    // const auto parseTime = std::chrono::high_resolution_clock::now();
-    // const auto parseDuration =
-    // std::chrono::duration_cast<std::chrono::milliseconds>(parseTime -
-    // requestTime); if(requestDuration.count() > 0){ std::cout << "Request
-    // took: " << requestDuration.count() << " ms" << std::endl; std::cout <<
-    // "Parse took: " << parseDuration.count() << " ms" << std::endl;
-    // }
-
     return result;
-    // return Parser::parse<TCommand>(response);
   }
 
   void loadAvailability() {
@@ -68,26 +43,12 @@ public:
         DiagnosticCommands::COMMAND_AVAILABILITY_C0_DF>();
   }
 
-  template <DiagnosticCommands::CommandAvailability TCommand>
-  void loadAvailabilityForCommand() {
-    if (isCommandAvailable(TCommand::value)) {
-      return;
-    }
-
-    const auto response = get<TCommand>();
-    const auto availability = Parser<TCommand>::parse(response);
-
-    for (const auto [key, value] : availability) {
-      _availableCommands[key] = value;
-    }
-  }
-
   void printAvailableCommands() const {
     _debugComm.println("Available commands:");
     for (const auto &[key, isAvailable] : _availableCommands) {
       _debugComm.print("    ");
       for (int i = 0; i < 4; i++) {
-        _debugComm.writeByteLn(key[i]);
+        _debugComm.println(key);
       }
       _debugComm.print(": ");
       _debugComm.println(isAvailable);
@@ -202,141 +163,119 @@ public:
     _debugComm.writeByteLn(checksum);
 
     // C1 33 F1 81 66
-    if (header == 0xc1 && receiver == 0x33 && sender == 0xf1 &&
-        dataLength > 0 && data[0] == 0x81 && checksum == 0x66) {
-      // 0x83 0xF1 0x11 0xC1 0x8F 0xEF 0xC4
-      _comm.write(0x83);
-      _comm.write(0xF1);
-      _comm.write(0x11);
-      _comm.write(0xC1);
-      _comm.write(0x8F);
-      _comm.write(0xEF);
-      _comm.write(0xC4);
-      _debugComm.println("ACK sent");
-      return true;
-    }
-
-    // if (PID == 0x0c && data.size() >= 2) {
-    //     Parser::parse<DiagnosticCommands::ENGINE_RPM>(data);
-    //     _debugComm.print("Engine RPM: ");
-    //     _debugComm.println(Parser::parse<DiagnosticCommands::ENGINE_RPM>(data));
-    //     return true;
-    // }
-    // else if (PID == 0x0d && data.size() >= 1) {
-    //     Parser::parse<DiagnosticCommands::VEHICLE_SPEED>(data);
-    //     _debugComm.print("Vehicle speed: ");
-    //     _debugComm.println(Parser::parse<DiagnosticCommands::VEHICLE_SPEED>(data));
-    //     return true;
+    // if (header == 0xc1 && receiver == 0x33 && sender == 0xf1 &&
+    //     dataLength > 0 && data[0] == 0x81 && checksum == 0x66) {
+    //   // 0x83 0xF1 0x11 0xC1 0x8F 0xEF 0xC4
+    //   _comm.write(0x83);
+    //   _comm.write(0xF1);
+    //   _comm.write(0x11);
+    //   _comm.write(0xC1);
+    //   _comm.write(0x8F);
+    //   _comm.write(0xEF);
+    //   _comm.write(0xC4);
+    //   _debugComm.println("ACK sent");
+    //   return true;
     // }
 
     return false;
   }
 
-  std::vector<uint8_t> request(const uint8_t command[]) {
+  std::vector<uint8_t> request(CommandLiteral command) {
 
-    const uint8_t packet[] = {0xc2,
-                              0x33,
-                              0xF1,
-                              command[0],
-                              command[1],
-                              static_cast<uint8_t>(0xc2 + 0x33 + 0xf1 +
-                                                   command[0] +
-                                                   command[1] % 0x100)};
-    _comm.write(packet, sizeof(packet));
+    const std::vector<uint8_t> packet{
+        0xc2,
+        0x33,
+        0xF1,
+        command.mode,
+        command.pid,
+        static_cast<uint8_t>(0xc2 + 0x33 + 0xf1 + command.mode +
+                             command.pid % 0x100)};
+    // _comm.write(packet, sizeof(packet));
+    _comm.write(packet);
 
     _debugComm.println("Request sent:");
     for (uint i = 0; i < sizeof(packet); i++) {
-      _debugComm.writeByteLn(packet[i]);
+      _debugComm.println(packet[i]);
       _debugComm.print(" ");
     }
     _debugComm.println();
 
-    auto attemptsLeft = 128;
+    uint8_t header;
+    do {
+      header = _comm.read();
+      if (header != 0) {
+        _debugComm.print("Header: ");
+        _debugComm.println(header);
+      }
+    } while (!((header >= 0x80 && header <= 0x8f) ||
+               (header >= 0xc0 && header <= 0xcf)));
 
-    while (attemptsLeft > 0) {
-      while (_comm.available() < 3)
-        ;
-      const uint8_t header = _comm.read();
-      if (!(header >= 0x82 && header <= 0x8f)) {
-        --attemptsLeft;
-        continue;
-      }
-      const uint8_t dataLength = header % 0x10 - 2;
-      if (dataLength < 2) {
-        --attemptsLeft;
-        continue;
-      }
-      const uint8_t receiver = _comm.read();
-      if (receiver != 0xf1) {
-        --attemptsLeft;
-        continue;
-      }
-      const uint8_t sender = _comm.read();
-      // Let's ignore sender for now.
+    uint8_t dataLength = header % 0x10;
 
-      while (_comm.available() < dataLength)
-        ;
-      const uint8_t mode = _comm.read();
-      if (mode != 0x01) {
-        --attemptsLeft;
-        continue;
-      }
-      const uint8_t PID = _comm.read();
-      if (PID != 0x0c && PID != 0x0d) {
-        --attemptsLeft;
-        continue;
-      }
+    const uint8_t receiver = _comm.read();
 
-      const auto obdDataLength = dataLength - 2;
+    const uint8_t sender = _comm.read();
 
-      std::vector<uint8_t> data(obdDataLength);
-      for (int i = 0; i < dataLength; i++) {
-        data[i] = _comm.read();
-      }
-
-      while (_comm.available() == 0)
-        ;
-      const uint8_t checksum = _comm.read();
-
-      _debugComm.println("Frame received:");
-      _debugComm.print("    Header: ");
-      _debugComm.writeByteLn(header);
-      _debugComm.print("    Data length: ");
-      _debugComm.writeByteLn(dataLength);
-      _debugComm.print("    Receiver: ");
-      _debugComm.writeByteLn(receiver);
-      _debugComm.print("    Sender: ");
-      _debugComm.writeByteLn(sender);
-      _debugComm.print("    Mode: ");
-      _debugComm.writeByteLn(mode);
-      _debugComm.print("    PID: ");
-      _debugComm.writeByteLn(PID);
-      _debugComm.print("    Data: ");
-      for (int i = 0; i < dataLength; i++) {
-        _debugComm.writeByte(data[i]);
-        _debugComm.print(" ");
-      }
-      _debugComm.println();
-      _debugComm.print("    Checksum: ");
-      _debugComm.writeByteLn(checksum);
-      return data;
+    std::vector<uint8_t> data(dataLength);
+    for (int i = 0; i < dataLength; i++) {
+      data[i] = _comm.read();
     }
 
-    _debugComm.println("Maximum attempts reached");
-    return {};
+    const uint8_t checksum = _comm.read();
+
+    _debugComm.println("Frame received:");
+    _debugComm.print("    Header: ");
+    _debugComm.println(header);
+    _debugComm.print("    Data length: ");
+    _debugComm.println(dataLength);
+    _debugComm.print("    Receiver: ");
+    _debugComm.println(receiver);
+    _debugComm.print("    Sender: ");
+    _debugComm.println(sender);
+    _debugComm.print("    Data: ");
+    for (int i = 0; i < dataLength; i++) {
+
+      _debugComm.print(data[i]);
+      _debugComm.print(" ");
+    }
+    _debugComm.println();
+    _debugComm.print("    Checksum: ");
+    _debugComm.println(checksum);
+
+    return data;
   }
 
-  bool isCommandAvailable(const uint8_t command[]) const {
+  bool isCommandAvailable(CommandLiteral command) const {
     return _availableCommands.find(command) != _availableCommands.end() &&
            _availableCommands.at(command);
   }
 
 private:
-  ICommunication &_comm;
-  ICommunication &_debugComm;
+  template <DiagnosticCommands::CommandAvailability TCommand>
+  void loadAvailabilityForCommand() {
+    if (isCommandAvailable(TCommand::value)) {
+      return;
+    }
+
+    const auto availability = get<TCommand>();
+
+    // static_assert(
+    //     std::is_same_v<
+    //         DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::ParsingFormula::
+    //             ValueType,
+    //         decltype(get<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>())>);
+
+    for (const auto [key, value] : availability) {
+      // static_assert(std::is_same_v<decltype(key), CommandLiteral>);
+      _availableCommands[key] = value;
+    }
+  }
+
+  ICommunicator &_comm;
+  ICommunicator &_debugComm;
   uint8_t buffer[512];
-  std::map<const uint8_t *, bool> _availableCommands;
+  std::map<CommandLiteral, bool> _availableCommands;
 };
 #define REQUESTHANDLER_HPP
 
-#endif // REQUESTHANDLER_HPP
+#endif // REQUEST_HANDLER_HPP

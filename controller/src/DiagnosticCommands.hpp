@@ -1,8 +1,28 @@
-#ifndef DIAGNOSTICCOMMANDS_HPP
-#define DIAGNOSTICCOMMANDS_HPP
+#ifndef DIAGNOSTIC_COMMANDS_HPP
+#define DIAGNOSTIC_COMMANDS_HPP
+#include <iomanip>
 #include <map>
+#include <sstream>
 #include <string>
 #include <vector>
+
+struct CommandLiteral {
+  auto operator<=>(const CommandLiteral &) const = default;
+
+  operator std::string() const {
+    std::stringstream ss;
+
+    ss << std::hex << std::setfill('0') << std::setw(2)
+       << static_cast<int>(mode);
+    ss << std::hex << std::setfill('0') << std::setw(2)
+       << static_cast<int>(pid);
+
+    return "0x" + ss.str();
+  }
+
+  uint8_t mode;
+  uint8_t pid;
+};
 
 namespace ParsingFormulas {
 template <const uint8_t TByteCount, typename TValueType> struct Identity {
@@ -21,7 +41,8 @@ struct DivideBy : Identity<TByteCount, TValueType> {};
 template <const uint8_t TByteCount>
 struct Percentage : DivideBy<TByteCount, double, 255, 100> {};
 
-struct CommandAvailability : Identity<4, const std::vector<bool>> {};
+struct CommandAvailability : Identity<4, const std::map<CommandLiteral, bool>> {
+};
 } // namespace ParsingFormulas
 
 namespace DiagnosticCommands {
@@ -31,17 +52,17 @@ template <const uint8_t TPrefix, const uint8_t TCommand>
 struct PrefixedCommand {
   constexpr static const uint8_t prefix = TPrefix;
   constexpr static const uint8_t command = TCommand;
-  constexpr static const std::array<uint8_t, 2> value = {TPrefix, TCommand};
+  constexpr static CommandLiteral value = {TPrefix, TCommand};
 };
 
 template <const uint8_t TPrefix, const uint8_t TCommand,
-          typename TParsingAlgorithm>
+          typename TParsingFormula>
   requires std::is_base_of_v<
-      ParsingFormulas::Identity<TParsingAlgorithm::byteCount,
-                                typename TParsingAlgorithm::ValueType>,
-      TParsingAlgorithm>
+      ParsingFormulas::Identity<TParsingFormula::byteCount,
+                                typename TParsingFormula::ValueType>,
+      TParsingFormula>
 struct PrefixedCommandWithResponse : PrefixedCommand<TPrefix, TCommand> {
-  typedef TParsingAlgorithm ParsingAlgorithm;
+  typedef TParsingFormula ParsingFormula;
 };
 
 template <const uint8_t TPrefix, const uint8_t TCommand>
@@ -53,7 +74,7 @@ struct PrefixedCommandAvailability
 template <class TCommand>
 concept Command = std::is_base_of_v<
     internal::PrefixedCommandWithResponse<TCommand::prefix, TCommand::command,
-                                          typename TCommand::ParsingAlgorithm>,
+                                          typename TCommand::ParsingFormula>,
     TCommand>;
 
 template <class TCommand>
@@ -112,8 +133,8 @@ struct COMMAND_AVAILABILITY_A0_BF
 struct COMMAND_AVAILABILITY_C0_DF
     : internal::PrefixedCommandAvailability<0x01, 0xC0> {};
 
-constexpr static const std::array<std::array<uint8_t, 2>, 1>
-    DEFAULT_AVAILABILITY{COMMAND_AVAILABILITY_00_1F::value};
+constexpr static const std::array<CommandLiteral, 1> DEFAULT_AVAILABILITY{
+    COMMAND_AVAILABILITY_00_1F::value};
 
 } // namespace DiagnosticCommands
-#endif // DIAGNOSTICCOMMANDS_HPP
+#endif // DIAGNOSTIC_COMMANDS_HPP

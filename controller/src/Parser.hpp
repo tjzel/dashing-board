@@ -6,27 +6,30 @@
 #include <string>
 #include <type_traits>
 
-template <typename TCommand, typename = void> struct Parser {
-  static auto parse(std::span<const uint8_t>) -> typename TCommand::Type {
-    return -1;
-  }
-};
+template <DiagnosticCommands::Command TCommand> struct Parser;
+
+static_assert(
+    std::is_same_v<
+        typename DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::ParsingFormula,
+        ParsingFormulas::CommandAvailability>);
 
 template <DiagnosticCommands::Command TCommand>
-struct Parser<
-    TCommand,
-    std::enable_if_t<std::is_same_v<typename TCommand::ParsingAlgorithm,
-                                    ParsingFormulas::CommandAvailability>>> {
-  static auto parse(std::span<const uint8_t> data) -> typename TCommand::Type {
-    std::unordered_map<uint8_t, bool> availability;
+  requires std::is_same_v<typename TCommand::ParsingFormula,
+                          ParsingFormulas::CommandAvailability>
+
+struct Parser<TCommand> {
+  static auto parse(std::span<const uint8_t> data) ->
+      typename TCommand::ParsingFormula::ValueType {
+    std::map<CommandLiteral, bool> availability;
     const auto commandOffset = TCommand::command + 1;
 
     for (auto byte : data) {
       const uint8_t byteOffset = byte * 8;
       for (int i = 0; i < 8; i++) {
-        const auto bit = byte & (1 << (7 - i));
-        const auto keyOffset = commandOffset + byteOffset + i;
-        availability[keyOffset + i] = bit;
+        const bool bit = byte & (1 << (7 - i));
+        const uint8_t keyOffset = commandOffset + byteOffset + i;
+        const CommandLiteral key = {TCommand::prefix, keyOffset};
+        availability[key] = bit;
       }
     }
     return availability;
@@ -34,15 +37,23 @@ struct Parser<
 };
 
 template <DiagnosticCommands::Command TCommand>
-struct Parser<TCommand,
-              std::enable_if_t<std::is_same_v<
-                  typename TCommand::ParsingAlgorithm,
-                  ParsingFormulas::Identity<
-                      TCommand::ParsingAlgorithm::byteCount,
-                      typename TCommand::ParsingAlgorithm::ValueType>>>> {
-  static auto parse(std::span<const uint8_t> data) -> typename TCommand::Type {
-    static_assert(data.size() == TCommand::ParsingAlgorithm::byteCount);
-    typename TCommand::ParsingAlgorithm::ValueType result = 0;
+  requires std::is_same_v<
+      typename TCommand::ParsingFormula,
+      ParsingFormulas::Identity<TCommand::ParsingFormula::byteCount,
+                                typename TCommand::ParsingFormula::ValueType>>
+struct Parser<TCommand
+              // ,
+              //               std::enable_if_t<std::is_same_v<
+              //                   typename TCommand::ParsingFormula,
+              //                   ParsingFormulas::Identity<
+              //                       TCommand::ParsingFormula::byteCount,
+              //                       typename
+              //                       TCommand::ParsingFormula::ValueType>>>
+              > {
+  static auto parse(std::span<const uint8_t> data) ->
+      typename TCommand::ParsingFormula::ValueType {
+    static_assert(data.size() == TCommand::ParsingFormula::byteCount);
+    typename TCommand::ParsingFormula::ValueType result = 0;
     for (auto byte : data) {
       result = result * 256 + byte;
     }
@@ -51,55 +62,89 @@ struct Parser<TCommand,
 };
 
 template <DiagnosticCommands::Command TCommand>
-struct Parser<TCommand, std::enable_if_t<std::is_same_v<
-                            typename TCommand::ParsingAlgorithm,
-                            ParsingFormulas::MultiplyBy<
-                                TCommand::ParsingAlgorithm::byteCount,
-                                typename TCommand::ParsingAlgorithm::ValueType,
-                                TCommand::ParsingAlgorithm::Multiplier>>>> {
-  static auto parse(std::span<const uint8_t> data) -> typename TCommand::Type {
-    static_assert(data.size() == TCommand::ParsingAlgorithm::byteCount);
-    typename TCommand::ParsingAlgorithm::ValueType result = 0;
-    for (auto byte : data) {
-      result = result * 256 + byte;
-    }
-    return result / TCommand::ParsingAlgorithm::Multiplier;
-  }
-};
-
-template <DiagnosticCommands::Command TCommand>
-struct Parser<TCommand, std::enable_if_t<std::is_same_v<
-                            typename TCommand::ParsingAlgorithm,
-                            ParsingFormulas::DivideBy<
-                                TCommand::ParsingAlgorithm::byteCount,
-                                typename TCommand::ParsingAlgorithm::ValueType,
-                                TCommand::ParsingAlgorithm::Nominator,
-                                TCommand::ParsingAlgorithm::Denominator>>>> {
-  static auto parse(std::span<const uint8_t> data) -> typename TCommand::Type {
-    static_assert(data.size() == TCommand::ParsingAlgorithm::byteCount);
-    typename TCommand::ParsingAlgorithm::ValueType result = 0;
-    for (auto byte : data) {
-      result = result * 256 + byte;
-    }
-    return result / (TCommand::ParsingAlgorithm::Nominator /
-                     TCommand::ParsingAlgorithm::Denominator);
-  }
-};
-
-template <DiagnosticCommands::Command TCommand>
+  requires std::is_same_v<
+      typename TCommand::ParsingFormula,
+      ParsingFormulas::MultiplyBy<TCommand::ParsingFormula::byteCount,
+                                  typename TCommand::ParsingFormula::ValueType,
+                                  TCommand::ParsingFormula::Multiplier>>
 struct Parser<
-    TCommand,
-    std::enable_if_t<std::is_same_v<
-        typename TCommand::ParsingAlgorithm,
-        ParsingFormulas::Percentage<TCommand::ParsingAlgorithm::byteCount>>>> {
-  static auto parse(std::span<const uint8_t> data) -> typename TCommand::Type {
-    static_assert(data.size() == TCommand::ParsingAlgorithm::byteCount);
-    typename TCommand::ParsingAlgorithm::ValueType result = 0;
+    TCommand
+    // , std::enable_if_t<std::is_same_v<
+    //                             typename TCommand::ParsingFormula,
+    //                             ParsingFormulas::MultiplyBy<
+    //                                 TCommand::ParsingFormula::byteCount,
+    //                                 typename
+    //                                 TCommand::ParsingFormula::ValueType,
+    //                                 TCommand::ParsingFormula::Multiplier>>>
+    > {
+  static auto parse(std::span<const uint8_t> data) ->
+      typename TCommand::ParsingFormula::ValueType {
+    static_assert(data.size() == TCommand::ParsingFormula::byteCount);
+    typename TCommand::ParsingFormula::ValueType result = 0;
     for (auto byte : data) {
       result = result * 256 + byte;
     }
-    return result / (TCommand::ParsingAlgorithm::Nominator /
-                     TCommand::ParsingAlgorithm::Denominator);
+    return result / TCommand::ParsingFormula::Multiplier;
+  }
+};
+
+template <DiagnosticCommands::Command TCommand>
+  requires std::is_same_v<
+      typename TCommand::ParsingFormula,
+      ParsingFormulas::DivideBy<TCommand::ParsingFormula::byteCount,
+                                typename TCommand::ParsingFormula::ValueType,
+                                TCommand::ParsingFormula::Nominator,
+                                TCommand::ParsingFormula::Denominator>>
+struct Parser<
+    TCommand
+    // , std::enable_if_t<std::is_same_v<
+    //                             typename TCommand::ParsingFormula,
+    //                             ParsingFormulas::DivideBy<
+    //                                 TCommand::ParsingFormula::byteCount,
+    //                                 typename
+    //                                 TCommand::ParsingFormula::ValueType,
+    //                                 TCommand::ParsingFormula::Nominator,
+    //                                 TCommand::ParsingFormula::Denominator>>>
+    > {
+  static auto parse(std::span<const uint8_t> data) ->
+      typename TCommand::ParsingFormula::ValueType {
+    static_assert(data.size() == TCommand::ParsingFormula::byteCount);
+    typename TCommand::ParsingFormula::ValueType result = 0;
+    for (auto byte : data) {
+      result = result * 256 + byte;
+    }
+    return result / (TCommand::ParsingFormula::Nominator /
+                     TCommand::ParsingFormula::Denominator);
+  }
+};
+
+template <DiagnosticCommands::Command TCommand>
+  requires std::is_same_v<
+      typename TCommand::ParsingFormula,
+      ParsingFormulas::Percentage<TCommand::ParsingFormula::byteCount>>
+struct Parser<
+    TCommand
+    // ,
+    // std::enable_if_t<std::is_same_v<
+    //     typename TCommand::ParsingFormula,
+    //     ParsingFormulas::Percentage<TCommand::ParsingFormula::byteCount>>>
+    > {
+  static auto parse(std::span<const uint8_t> data) ->
+      typename TCommand::ParsingFormula::ValueType {
+    static_assert(data.size() == TCommand::ParsingFormula::byteCount);
+    typename TCommand::ParsingFormula::ValueType result = 0;
+    for (auto byte : data) {
+      result = result * 256 + byte;
+    }
+    return result / (TCommand::ParsingFormula::Nominator /
+                     TCommand::ParsingFormula::Denominator);
+  }
+};
+
+template <DiagnosticCommands::Command TCommand> struct Parser {
+  static auto parse(std::span<const uint8_t>) ->
+      typename TCommand::ParsingFormula::ValueType {
+    return -1;
   }
 };
 
