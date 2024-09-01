@@ -2,7 +2,6 @@
 #define DATA_FRAME_HPP
 #include <string>
 
-// TODO: Make it generic as well.
 class DataFrame {
 
 public:

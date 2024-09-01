@@ -1,56 +1,47 @@
 #ifndef COMMUNICATOR_MOCK_HPP
 #define COMMUNICATOR_MOCK_HPP
 
-#include "ICommunicator.hpp"
+#include "Parser.hpp"
 #include <DiagnosticCommands.hpp>
+#include <ICommunicator.hpp>
+#include <Message.hpp>
 #include <RequestHandler.hpp>
+#include <span>
 #include <string>
 
+using namespace DiagnosticCommands;
+
 constexpr size_t BUFFER_SIZE = 128;
+using ByteBuffer = std::array<byte, BUFFER_SIZE>;
 
-using ByteBuffer = std::array<uint8_t, BUFFER_SIZE>;
+class DataProvider {
+public:
+  int get();
 
-// TODO: Get rid of those structs, use some Views on them instead.
+  DataProvider(int initialValue, int step, int sign, int bottomThreshold,
+               int topThreshold);
 
-/**
- * K-Line message has the following structure:
- * HEADER | RECEIVER | SENDER | DATA (OBD2 MESSAGE) | CHECKSUM
- */
-struct Message {
-  uint8_t header;
-  uint8_t dataSize;
-  uint8_t receiver;
-  uint8_t sender;
-  std::vector<uint8_t> data;
-  uint8_t checksum;
+private:
+  int _value;
+  int _step;
+  int _sign;
+  int _bottomThreshold;
+  int _topThreshold;
 };
-
-/**
- * OBD2 message has the following structure:
- * MODE | PID | DATA
- */
-struct OBD2Message {
-  uint8_t mode;
-  uint8_t pid;
-  uint8_t dataSize;
-  std::vector<uint8_t> data;
-};
-
-bool isOBD2Message(const Message &message);
 
 class CommunicatorMock {
 public:
-  uint8_t read();
+  byte read();
 
-  void write(const std::vector<uint8_t> &message);
+  void write(const std::vector<byte> &message);
 
-  void write(uint8_t byte);
+  void write(byte byte);
 
-  static void print(uint8_t byte);
+  static void print(byte byte);
 
   static void print(const std::string &str);
 
-  static void println(uint8_t byte);
+  static void println(byte byte);
 
   static void println(const std::string &str);
 
@@ -59,58 +50,56 @@ public:
 private:
   bool hasValidInputMessage();
   void handleInput();
-  void sendResponse(const OBD2Message &response);
+  void sendResponse(const byte mode, const byte pid,
+                    const std::span<const byte> obd2Payload);
+  void send(const Message &message);
 
-  template <DiagnosticCommands::Command TCommand> void respond() {};
+  template <Command TCommand> void respond() {};
 
-  template <> void respond<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>() {
-    const OBD2Message response{
-        DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::prefix,
-        DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::command,
-        0x04,
-        {0x00, 0x18, 0x00, 0x00}};
-    sendResponse(response);
+  template <> void respond<COMMAND_AVAILABILITY_00_1F>() {
+    const byte mode = COMMAND_AVAILABILITY_00_1F::mode;
+    const byte pid = COMMAND_AVAILABILITY_00_1F::pid;
+    const std::array<byte,
+                     COMMAND_AVAILABILITY_00_1F::ParsingFormula::byteCount>
+        data{0x00, 0x18, 0x00, 0x00};
+
+    sendResponse(mode, pid, data);
   }
 
-  template <> void respond<DiagnosticCommands::ENGINE_RPM>() {
-    const OBD2Message response{DiagnosticCommands::ENGINE_RPM::prefix,
-                               DiagnosticCommands::ENGINE_RPM::command,
-                               0x02,
-                               {0x21, 0x37}};
-    sendResponse(response);
+  template <> void respond<ENGINE_RPM>() {
+    const byte mode = ENGINE_RPM::mode;
+    const byte pid = ENGINE_RPM::pid;
+    const auto data = Parser<ENGINE_RPM>::reverseParse(_rpmProvider.get());
+
+    sendResponse(mode, pid, data);
   };
 
-  template <> void respond<DiagnosticCommands::VEHICLE_SPEED>() {
-    const OBD2Message response{
-        DiagnosticCommands::VEHICLE_SPEED::prefix,
-        DiagnosticCommands::VEHICLE_SPEED::command,
-        0x01, // TODO: Not nice not to have assert for size.
-        {0x69}};
-    sendResponse(response);
+  template <> void respond<VEHICLE_SPEED>() {
+    const byte mode = VEHICLE_SPEED::mode;
+    const byte pid = VEHICLE_SPEED::pid;
+    const auto data = Parser<VEHICLE_SPEED>::reverseParse(_speedProvider.get());
+
+    sendResponse(mode, pid, data);
   };
 
-  // TODO: Not nice to use a fixed type here for `command`.
-  void react(const CommandLiteral command) {
-    if (command == DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::value) {
-      respond<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>();
-    } else if (command == DiagnosticCommands::ENGINE_RPM::value) {
-      respond<DiagnosticCommands::ENGINE_RPM>();
-    } else if (command == DiagnosticCommands::VEHICLE_SPEED::value) {
-      respond<DiagnosticCommands::VEHICLE_SPEED>();
-    } else {
-      // Ignore unknown commands.
-      // TODO:  Compare this behavior to real ECU.
-    }
-  }
+  void handleDiagnosticRequest(const CommandLiteral pid);
 
-  ByteBuffer _outputByteBuffer{};
-  ByteBuffer::iterator _outputGuard = _outputByteBuffer.begin();
-  ByteBuffer _inputByteBuffer{};
-  ByteBuffer::iterator _inputBegin = _inputByteBuffer.begin();
-  ByteBuffer::iterator _inputEnd = _inputByteBuffer.begin();
-  Message _lastInputMessage{};
-  Message _currentInputMessage{};
+  static constexpr byte ECU_ADDRESS = 0x33;
+  static constexpr byte REQUEST_HEADER = 0xC0;
+  static constexpr byte RESPONSE_HEADER = 0x80;
+  static constexpr byte REQUEST_HEADER_MODE_MASK = 0xf0;
+  static constexpr byte OBD2_HEADER_SIZE = 0x02;
+
+  ByteBuffer _inputBuffer{};
+  ByteBuffer::iterator _inputEnd = _inputBuffer.begin();
+  ByteBuffer _outputBuffer{};
+  ByteBuffer::iterator _outputBegin = _outputBuffer.begin();
+  ByteBuffer::iterator _outputEnd = _outputBuffer.begin();
+  Message _inputMessage{0x00, 0x00, 0x00, {}};
+  Message _outputMessage{0x00, 0x00, 0x00, {}};
   bool _hasValidInputMessage = false;
+  DataProvider _speedProvider{10, 1, 1, 10, 100};
+  DataProvider _rpmProvider{800, 100, 1, 800, 4000};
 };
 
 static_assert(ICommunicator<CommunicatorMock>);

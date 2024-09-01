@@ -1,14 +1,13 @@
 #include <Utils.hpp>
 
-uint8_t calculateChecksum(const std::vector<uint8_t> &message) {
-  uint8_t checksum = 0;
-  for (const auto byte : message) {
-    checksum = (checksum + byte) % std::numeric_limits<uint8_t>::max();
+byte calculateChecksum(const std::span<const byte> &message) {
+  byte checksum = 0;
+  for (const auto readByte : message) {
+    checksum = (checksum + readByte) % std::numeric_limits<byte>::max();
   }
   return checksum;
 }
 
-bool isMessageValid(const std::vector<uint8_t> &message,
-                    const uint8_t checksum) {
+bool isMessageValid(const std::span<const byte> &message, const byte checksum) {
   return checksum == calculateChecksum(message);
 };

@@ -5,6 +5,8 @@
 #include <sstream>
 #include <string>
 
+typedef uint8_t byte;
+
 struct CommandLiteral {
   // TODO: CLion has a problem with <=> operator here.
   auto operator<=>(const CommandLiteral &) const = default;
@@ -20,31 +22,25 @@ struct CommandLiteral {
     return "0x" + ss.str();
   }
 
-  uint8_t mode;
-  uint8_t pid;
+  const byte mode;
+  const byte pid;
 };
 
 namespace ParsingFormulas {
-template <const uint8_t TByteCount, typename TValueType> struct Identity {
-  constexpr static uint8_t byteCount = TByteCount;
+template <const byte TByteCount, typename TValueType> struct Identity {
+  constexpr static byte byteCount = TByteCount;
   typedef TValueType ValueType;
 };
 
-template <const uint8_t TByteCount, typename TValueType,
-          const uint8_t TMultiplier>
-struct MultiplyBy : Identity<TByteCount, TValueType> {
-  constexpr static uint8_t Multiplier = TMultiplier;
-};
-
-template <const uint8_t TByteCount, typename TValueType, const int TNominator,
+template <const byte TByteCount, typename TValueType, const int TNominator,
           const int TDenominator>
-struct DivideBy : Identity<TByteCount, TValueType> {
-  constexpr static uint8_t Nominator = TNominator;
-  constexpr static uint8_t Denominator = TDenominator;
+struct MultiplyBy : Identity<TByteCount, TValueType> {
+  constexpr static byte Nominator = TNominator;
+  constexpr static byte Denominator = TDenominator;
 };
 
-template <const uint8_t TByteCount>
-struct Percentage : DivideBy<TByteCount, double, 255, 100> {};
+template <const byte TByteCount>
+struct Percentage : MultiplyBy<TByteCount, double, 100, 255> {};
 
 struct CommandAvailability : Identity<4, const std::map<CommandLiteral, bool>> {
 };
@@ -53,78 +49,75 @@ struct CommandAvailability : Identity<4, const std::map<CommandLiteral, bool>> {
 namespace DiagnosticCommands {
 namespace internal {
 
-template <const uint8_t TPrefix, const uint8_t TCommand>
-struct PrefixedCommand {
-  constexpr static uint8_t prefix = TPrefix;
-  constexpr static uint8_t command = TCommand;
-  constexpr static CommandLiteral value = {TPrefix, TCommand};
+template <const byte TMode, const byte TPid> struct FullCommand {
+  constexpr static byte mode = TMode;
+  constexpr static byte pid = TPid;
+  constexpr static CommandLiteral value = {TMode, TPid};
 };
 
-template <const uint8_t TPrefix, const uint8_t TCommand,
-          typename TParsingFormula>
+template <const byte TMode, const byte TPid, typename TParsingFormula>
   requires std::is_base_of_v<
       ParsingFormulas::Identity<TParsingFormula::byteCount,
                                 typename TParsingFormula::ValueType>,
       TParsingFormula>
-struct PrefixedCommandWithResponse : PrefixedCommand<TPrefix, TCommand> {
+struct FullCommandWithResponse : FullCommand<TMode, TPid> {
   typedef TParsingFormula ParsingFormula;
 };
 
-template <const uint8_t TPrefix, const uint8_t TCommand>
+template <const byte TMode, const byte TPid>
 struct PrefixedCommandAvailability
-    : PrefixedCommandWithResponse<TPrefix, TCommand,
-                                  ParsingFormulas::CommandAvailability> {};
+    : FullCommandWithResponse<TMode, TPid,
+                              ParsingFormulas::CommandAvailability> {};
 } // namespace internal
 
 template <class TCommand>
 concept Command = std::is_base_of_v<
-    internal::PrefixedCommandWithResponse<TCommand::prefix, TCommand::command,
-                                          typename TCommand::ParsingFormula>,
+    internal::FullCommandWithResponse<TCommand::mode, TCommand::pid,
+                                      typename TCommand::ParsingFormula>,
     TCommand>;
 
 template <class TCommand>
 concept CommandAvailability = std::is_base_of_v<
-    internal::PrefixedCommandWithResponse<TCommand::prefix, TCommand::command,
-                                          ParsingFormulas::CommandAvailability>,
+    internal::FullCommandWithResponse<TCommand::mode, TCommand::pid,
+                                      ParsingFormulas::CommandAvailability>,
     TCommand>;
 
 struct COMMAND_AVAILABILITY_00_1F
     : internal::PrefixedCommandAvailability<0x01, 0x00> {};
 struct ENGINE_LOAD
-    : internal::PrefixedCommandWithResponse<0x01, 0x04,
-                                            ParsingFormulas::Percentage<1>> {};
-struct ENGINE_RPM : internal::PrefixedCommandWithResponse<
-                        0x01, 0x0C, ParsingFormulas::DivideBy<2, int, 1, 4>> {};
+    : internal::FullCommandWithResponse<0x01, 0x04,
+                                        ParsingFormulas::Percentage<1>> {};
+struct ENGINE_RPM : internal::FullCommandWithResponse<
+                        0x01, 0x0C, ParsingFormulas::MultiplyBy<2, int, 1, 4>> {
+};
 
 struct VEHICLE_SPEED
-    : internal::PrefixedCommandWithResponse<0x01, 0x0D,
-                                            ParsingFormulas::Identity<1, int>> {
-};
+    : internal::FullCommandWithResponse<0x01, 0x0D,
+                                        ParsingFormulas::Identity<1, int>> {};
 struct THROTTLE_POSITION
-    : internal::PrefixedCommandWithResponse<0x01, 0x11,
-                                            ParsingFormulas::Percentage<1>> {};
+    : internal::FullCommandWithResponse<0x01, 0x11,
+                                        ParsingFormulas::Percentage<1>> {};
 struct UPTIME
-    : internal::PrefixedCommandWithResponse<0x01, 0x1F,
-                                            ParsingFormulas::Identity<2, int>> {
-};
+    : internal::FullCommandWithResponse<0x01, 0x1F,
+                                        ParsingFormulas::Identity<2, int>> {};
 
 struct COMMAND_AVAILABILITY_20_3F
     : internal::PrefixedCommandAvailability<0x01, 0x20> {};
 struct FUEL_LEVEL
-    : internal::PrefixedCommandWithResponse<0x01, 0x2F,
-                                            ParsingFormulas::Percentage<1>> {};
+    : internal::FullCommandWithResponse<0x01, 0x2F,
+                                        ParsingFormulas::Percentage<1>> {};
 
 struct COMMAND_AVAILABILITY_40_5F
     : internal::PrefixedCommandAvailability<0x01, 0x40> {};
 struct ABSOLUTE_LOAD
-    : internal::PrefixedCommandWithResponse<0x01, 0x43,
-                                            ParsingFormulas::Percentage<2>> {};
+    : internal::FullCommandWithResponse<0x01, 0x43,
+                                        ParsingFormulas::Percentage<2>> {};
 struct RELATIVE_THROTTLE_POSITION
-    : internal::PrefixedCommandWithResponse<0x01, 0x45,
-                                            ParsingFormulas::Percentage<1>> {};
+    : internal::FullCommandWithResponse<0x01, 0x45,
+                                        ParsingFormulas::Percentage<1>> {};
 struct ENGINE_FUEL_RATE
-    : internal::PrefixedCommandWithResponse<
-          0x01, 0x5E, ParsingFormulas::DivideBy<2, int, 1, 20>> {};
+    : internal::FullCommandWithResponse<
+          0x01, 0x5E, ParsingFormulas::MultiplyBy<2, int, 1, 20>> {};
 
 struct COMMAND_AVAILABILITY_60_7F
     : internal::PrefixedCommandAvailability<0x01, 0x60> {};

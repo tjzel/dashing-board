@@ -14,3 +14,9 @@ compile_commands.json
 
 # binaries
 bin
+
+# CMake
+CMakeFiles
+CMakeCache.txt
+Makefile
+cmake_install.cmake

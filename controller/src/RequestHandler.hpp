@@ -82,26 +82,20 @@ public:
   }
 
   DataFrame getDataFrame() {
-    return DataFrame{
-        -1, get<DiagnosticCommands::ENGINE_RPM>(), -1, -1, -1, -1, -1, -1,
-        -1
-        // get<DiagnosticCommands::ENGINE_LOAD>(8),
-        // get<DiagnosticCommands::ENGINE_RPM>(),
-        // get<DiagnosticCommands::VEHICLE_SPEED>(),
-        // get<DiagnosticCommands::THROTTLE_POSITION>(),
-        // get<DiagnosticCommands::UPTIME>(),
-        // get<DiagnosticCommands::FUEL_LEVEL>(),
-        // get<DiagnosticCommands::ABSOLUTE_LOAD>(),
-        // get<DiagnosticCommands::RELATIVE_THROTTLE_POSITION>(),
-        // get<DiagnosticCommands::ENGINE_FUEL_RATE>(),
-    };
+    return DataFrame{-1,
+                     get<DiagnosticCommands::ENGINE_RPM>(),
+                     get<DiagnosticCommands::VEHICLE_SPEED>(),
+                     -1,
+                     -1,
+                     -1,
+                     -1,
+                     -1,
+                     -1};
   }
 
   bool sniff() {
-    uint8_t header;
+    byte header;
     do {
-      while (_comm.available() == 0)
-        ;
       header = _comm.read();
       if (header != 0) {
         _debugComm.print("Header: ");
@@ -110,74 +104,48 @@ public:
     } while (!((header >= 0x80 && header <= 0x8f) ||
                (header >= 0xc0 && header <= 0xcf)));
 
-    uint8_t dataLength = header % 0x10;
-    while (_comm.available() == 0)
-      ;
-    const uint8_t receiver = _comm.read();
-    while (_comm.available() == 0)
-      ;
-    const uint8_t sender = _comm.read();
+    byte dataLength = header % 0x10;
 
-    uint8_t data[dataLength];
+    const byte receiver = _comm.read();
+
+    const byte sender = _comm.read();
+
+    std::vector<byte> data(dataLength);
     for (int i = 0; i < dataLength; i++) {
-      while (_comm.available() == 0)
-        ;
       data[i] = _comm.read();
     }
 
-    while (_comm.available() == 0)
-      ;
-    const uint8_t checksum = _comm.read();
+    const byte checksum = _comm.read();
 
-    if (header >= 0x80 && header <= 0x8f) {
-      _debugComm.println("Echo read");
-      return true;
-    }
+    // if (header >= 0x80 && header <= 0x8f) {
+    //   _debugComm.println("Echo read");
+    //   return true;
+    // }
 
     _debugComm.println("Frame received:");
     _debugComm.print("    Header: ");
-    _debugComm.writeByteLn(header);
+    _debugComm.println(header);
     _debugComm.print("    Data length: ");
-    _debugComm.writeByteLn(dataLength);
+    _debugComm.println(dataLength);
     _debugComm.print("    Receiver: ");
-    _debugComm.writeByteLn(receiver);
+    _debugComm.println(receiver);
     _debugComm.print("    Sender: ");
-    _debugComm.writeByteLn(sender);
-    // _debugComm.print("    Mode: ");
-    // _debugComm.println(mode, HEX);
-    // _debugComm.print("    PID: ");
-    // _debugComm.println(PID, HEX);
+    _debugComm.println(sender);
     _debugComm.print("    Data: ");
     for (int i = 0; i < dataLength; i++) {
-      _debugComm.writeByteLn(data[i]);
+      _debugComm.print(data[i]);
       _debugComm.print(" ");
     }
     _debugComm.println();
     _debugComm.print("    Checksum: ");
-    _debugComm.writeByteLn(checksum);
-
-    // C1 33 F1 81 66
-    // if (header == 0xc1 && receiver == 0x33 && sender == 0xf1 &&
-    //     dataLength > 0 && data[0] == 0x81 && checksum == 0x66) {
-    //   // 0x83 0xF1 0x11 0xC1 0x8F 0xEF 0xC4
-    //   _comm.write(0x83);
-    //   _comm.write(0xF1);
-    //   _comm.write(0x11);
-    //   _comm.write(0xC1);
-    //   _comm.write(0x8F);
-    //   _comm.write(0xEF);
-    //   _comm.write(0xC4);
-    //   _debugComm.println("ACK sent");
-    //   return true;
-    // }
+    _debugComm.println(checksum);
 
     return false;
   }
 
-  std::vector<uint8_t> request(CommandLiteral command) {
+  std::vector<byte> request(CommandLiteral command) {
 
-    std::vector<uint8_t> packet{0xc2,         0x33,        0xf1,
-                                command.mode, command.pid, 0x00};
+    std::vector<byte> packet{0xc2, 0x33, 0xf1, command.mode, command.pid, 0x00};
     packet.back() = calculateChecksum(packet);
     _comm.write(packet);
 
@@ -188,7 +156,7 @@ public:
     }
     _debugComm.println();
 
-    uint8_t header;
+    byte header;
     do {
       header = _comm.read();
       if (header != 0) {
@@ -198,18 +166,18 @@ public:
     } while (!((header >= 0x80 && header <= 0x8f) ||
                (header >= 0xc0 && header <= 0xcf)));
 
-    uint8_t dataLength = header % 0x10;
+    byte dataLength = header % 0x10;
 
-    const uint8_t receiver = _comm.read();
+    const byte receiver = _comm.read();
 
-    const uint8_t sender = _comm.read();
+    const byte sender = _comm.read();
 
-    std::vector<uint8_t> data(dataLength);
+    std::vector<byte> data(dataLength);
     for (int i = 0; i < dataLength; i++) {
       data[i] = _comm.read();
     }
 
-    const uint8_t checksum = _comm.read();
+    const byte checksum = _comm.read();
 
     _debugComm.println("Frame received:");
     _debugComm.print("    Header: ");

@@ -11,8 +11,10 @@ int main() {
   handler.printAvailableCommands();
   handler.printAvailableForDataFrame();
 
-  handler.get<DiagnosticCommands::ENGINE_RPM>();
   std::cout << static_cast<std::string>(handler.getDataFrame());
+
+  handler.sniff();
+  handler.sniff();
 
   return 0;
 }
