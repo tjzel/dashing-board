@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION 3.28)
-project(Controller)
+# project(ControllerTest)
 
 # Temporarily.
 set(CMAKE_BUILD_TYPE Debug)
 
-set(CMAKE_C_COMPILER clang)
-set(CMAKE_CXX_COMPILER clang++)
+if(NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
+  set(CMAKE_C_COMPILER clang)
+endif()
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  set(CMAKE_CXX_COMPILER clang++)
+endif()
 
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
