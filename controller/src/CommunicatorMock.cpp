@@ -1,188 +1,146 @@
-#include "DiagnosticCommands.hpp"
 #include <CommunicatorMock.hpp>
+#include <DiagnosticCommands.hpp>
+#include <Parser.hpp>
 #include <RequestHandler.hpp>
 #include <Utils.hpp>
 #include <iostream>
 #include <string>
 
-/**
- * OBD2 message contains at least two bytes - mode and PID.
- */
-bool isOBD2Message(Message &message) { return message.dataSize() > 1; }
+/* #region BufferMock */
 
-byte CommunicatorMock::read() {
-  // TODO: use views in the future.
-  // const auto outputView = std::span(_outputBegin, _outputEnd);
-  if (_outputEnd == _outputBegin) {
-    _outputBegin = _outputBuffer.begin();
-    _outputEnd = _outputBegin;
-    std::cout << "No more data to read.\n Sending random data.\n" << std::endl;
-    respond<ENGINE_RPM>();
-    respond<VEHICLE_SPEED>();
+Byte CommunicatorBufferMock::controllerRead() {
+  if (_controllerBufferView.empty()) {
+    _onControllerBufferReadWhenEmpty();
   }
-  const auto byte = *_outputBegin++;
-  if (_outputBegin == _outputEnd) {
-    _outputBegin = _outputBuffer.begin();
-    _outputEnd = _outputBegin;
-  }
+  const auto byte = _controllerBufferView.front();
+  _controllerBegin++;
+  _onControllerBufferChanged();
   return byte;
 }
 
-void CommunicatorMock::write(const byte byte) {
-  *_inputEnd = byte;
-  ++_inputEnd;
-  handleInput();
+bool CommunicatorBufferMock::controllerReadAvailable() { return !_controllerBufferView.empty(); }
+
+void CommunicatorBufferMock::controllerWrite(Byte byte) {
+  *_ecuEnd++ = byte;
+  _onEcuBufferChanged();
+  _onEcuBufferWrite();
 }
 
-void CommunicatorMock::write(const std::vector<byte> &message) {
-  auto it = _inputEnd;
+void CommunicatorBufferMock::controllerWrite(const std::vector<Byte> &message) {
+  auto it = _ecuEnd;
   for (auto byte : message) {
-    *it = byte;
-    ++it;
+    *it++ = byte;
   }
-  _inputEnd = it;
-  handleInput();
+  _ecuEnd = it;
+  _onEcuBufferChanged();
+  _onEcuBufferWrite();
 }
 
-void CommunicatorMock::print(const byte byte) {
-  std::cout << std::hex << std::setfill('0') << std::setw(2)
-            << static_cast<int>(byte);
+Byte CommunicatorBufferMock::ecuRead() {
+  if (_ecuBufferView.empty()) {
+    throw std::runtime_error("ECU should never attempt to read from empty buffer.");
+  }
+  const auto byte = _ecuBufferView.front();
+  _ecuBegin++;
+  _onEcuBufferChanged();
+  return byte;
 }
 
-void CommunicatorMock::print(const std::string &str) { std::cout << str; }
+bool CommunicatorBufferMock::ecuReadAvailable() { return !_ecuBufferView.empty(); }
 
-void CommunicatorMock::println(const byte byte) {
-  std::cout << std::hex << std::setfill('0') << std::setw(2)
-            << static_cast<int>(byte);
+void CommunicatorBufferMock::ecuWrite(Byte byte) {
+  *_controllerEnd++ = byte;
+  _onControllerBufferChanged();
+}
+
+void CommunicatorBufferMock::ecuWrite(const std::vector<Byte> &message) {
+  auto it = _controllerEnd;
+  for (auto byte : message) {
+    *it++ = byte;
+  }
+  _controllerEnd = it;
+  _onControllerBufferChanged();
+}
+
+CommunicatorBufferMock::CommunicatorBufferMock() : _ecuCommunicatorProxyMock(*this), _ecuMock(_ecuCommunicatorProxyMock) {}
+
+void CommunicatorBufferMock::_onControllerBufferChanged() {
+  if (_controllerBegin == _controllerEnd) {
+    _controllerBegin = _controllerBuffer.begin();
+    _controllerEnd = _controllerBegin;
+  }
+  _controllerBufferView = std::span<Byte>(_controllerBegin, _controllerEnd);
+}
+
+void CommunicatorBufferMock::_onControllerBufferReadWhenEmpty() {
+  // Simulating that another controller request was sent.
+  const Message message{
+      REQUEST_HEADER | OBD2_MIN_HEADER_SIZE, ECU_ADDRESS, CONTROLLER_ADDRESS, {ENGINE_RPM::mode, ENGINE_RPM::pid}};
+  controllerWrite(message);
+}
+
+void CommunicatorBufferMock::_onEcuBufferChanged() {
+  if (_ecuBegin == _ecuEnd) {
+    _ecuBegin = _ecuBuffer.begin();
+    _ecuEnd = _ecuBegin;
+  }
+  _ecuBufferView = std::span<Byte>(_ecuBegin, _ecuEnd);
+}
+
+void CommunicatorBufferMock::_onEcuBufferWrite() { _ecuMock.inputArrivedHandler(); }
+
+/* #endregion BufferMock */
+
+/* #region Proxies */
+
+Byte ControllerCommunicatorProxyMock::read() { return _communicatorBufferMock.controllerRead(); }
+
+bool ControllerCommunicatorProxyMock::available() { return _communicatorBufferMock.controllerReadAvailable(); }
+
+void ControllerCommunicatorProxyMock::write(Byte byte) { _communicatorBufferMock.controllerWrite(byte); }
+
+void ControllerCommunicatorProxyMock::write(const std::vector<Byte> &message) {
+  _communicatorBufferMock.controllerWrite(message);
+}
+
+ControllerCommunicatorProxyMock::ControllerCommunicatorProxyMock() : _communicatorBufferMock() {}
+
+Byte EcuCommunicatorProxyMock::read() { return _communicatorBufferMock.ecuRead(); }
+
+bool EcuCommunicatorProxyMock::available() { return _communicatorBufferMock.ecuReadAvailable(); }
+
+void EcuCommunicatorProxyMock::write(Byte byte) { _communicatorBufferMock.ecuWrite(byte); }
+
+void EcuCommunicatorProxyMock::write(const std::vector<Byte> &message) { _communicatorBufferMock.ecuWrite(message); }
+
+EcuCommunicatorProxyMock::EcuCommunicatorProxyMock(CommunicatorBufferMock &communicatorBufferMock)
+    : _communicatorBufferMock(communicatorBufferMock) {}
+
+/* #endregion Proxies */
+
+/* #region DebugCommunicatorMock */
+
+void DebugCommunicatorMock::print(const Byte byte) {
+  std::cout << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(byte);
+}
+
+void DebugCommunicatorMock::print(const std::string &str) { std::cout << str; }
+
+void DebugCommunicatorMock::println(const Byte byte) {
+  std::cout << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(byte);
   println();
 }
 
-void CommunicatorMock::println(const std::string &str) {
+void DebugCommunicatorMock::println(const std::string &str) {
   std::cout << str;
   println();
 }
 
-void CommunicatorMock::println() { std::cout << "\n"; }
+void DebugCommunicatorMock::println() { std::cout << "\n"; }
 
-bool CommunicatorMock::hasValidInputMessage() {
-  if (_hasValidInputMessage) {
-    return true;
-  };
+/* #endregion DebugCommunicatorMock */
 
-  auto startIt = _inputBuffer.begin();
-  if (startIt + Message::MINIMAL_MESSAGE_SIZE > _inputEnd) {
-    return false;
-  }
-
-  for (; startIt < _inputEnd; ++startIt) {
-    auto it = startIt;
-    const auto header = *it++;
-    if ((header & REQUEST_HEADER_MODE_MASK) != REQUEST_HEADER) {
-      continue;
-    };
-    const auto dataSize = header & Message::REQUEST_HEADER_SIZE_MASK;
-    if (startIt + Message::MINIMAL_MESSAGE_SIZE + dataSize > _inputEnd) {
-      // The whole message hasn't arrived yet.
-      return false;
-    }
-
-    const auto receiver = *it++;
-    if (receiver != ECU_ADDRESS) {
-      continue;
-    }
-
-    // We don't really do anything with the sender right now.
-    const auto sender = *it++;
-
-    std::vector<byte> data(dataSize);
-    for (int i = 0; i < dataSize; i++) {
-      data[i] = *it++;
-    }
-
-    const auto checksum = *it;
-
-    const Message message(header, receiver, sender, data);
-
-    if (checksum != message.checksum) {
-      continue;
-    };
-
-    _hasValidInputMessage = true;
-    _inputMessage = Message(message);
-    _inputEnd = _inputBuffer.begin();
-
-    return true;
-  }
-
-  return false;
-}
-
-void CommunicatorMock::handleInput() {
-  if (!hasValidInputMessage()) {
-    return;
-  }
-
-  _hasValidInputMessage = false;
-
-  if (!_inputMessage.isOBD2Message()) {
-    // Ignore and drop the message.
-    return;
-  }
-
-  const OBD2Message obd2Message(_inputMessage);
-  handleDiagnosticRequest(obd2Message.command());
-}
-
-void CommunicatorMock::sendResponse(const byte mode, const byte pid,
-                                    const std::span<const byte> obd2Payload) {
-  const byte obd2PayloadSize = obd2Payload.size() + OBD2_HEADER_SIZE;
-  const byte header = RESPONSE_HEADER | obd2Payload.size() + OBD2_HEADER_SIZE;
-  const byte receiver = _inputMessage.source;
-  const byte sender = ECU_ADDRESS;
-  std::vector<byte> payload(obd2PayloadSize);
-  payload[0] = mode;
-  payload[1] = pid;
-  std::copy(obd2Payload.begin(), obd2Payload.end(), payload.begin() + 2);
-
-  const Message response(header, receiver, sender, payload);
-  send(response);
-}
-
-void CommunicatorMock::send(const Message &message) {
-  *_outputEnd++ = message.format;
-  *_outputEnd++ = message.target;
-  *_outputEnd++ = message.source;
-  std::copy(message.data.begin(), message.data.end(), _outputEnd);
-  _outputEnd += message.data.size();
-  *_outputEnd++ = message.checksum;
-}
-
-void CommunicatorMock::handleDiagnosticRequest(const CommandLiteral pid) {
-  if (pid == COMMAND_AVAILABILITY_00_1F::value) {
-    respond<COMMAND_AVAILABILITY_00_1F>();
-  } else if (pid == ENGINE_RPM::value) {
-    respond<ENGINE_RPM>();
-  } else if (pid == VEHICLE_SPEED::value) {
-    respond<VEHICLE_SPEED>();
-  } else {
-    // Ignore unknown pids.
-    // TODO:  Compare this behavior to real ECU.
-  }
-}
-
-int DataProvider::get() {
-  const auto value = _value;
-  if (_value <= _bottomThreshold) {
-    _sign = 1;
-  } else if (_value >= _topThreshold) {
-    _sign = -1;
-  }
-
-  _value += _sign * _step;
-  return value;
-}
-
-DataProvider::DataProvider(int initialValue, int step, int sign,
-                           int bottomThreshold, int topThreshold)
-    : _value(initialValue), _step(step), _sign(sign),
-      _bottomThreshold(bottomThreshold), _topThreshold(topThreshold) {}
+/**
+ * OBD2 message contains at least two bytes - mode and PID.
+ */
+bool isOBD2Message(Message &message) { return message.dataSize() > 1; }

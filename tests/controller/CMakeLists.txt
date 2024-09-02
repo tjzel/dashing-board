@@ -4,6 +4,9 @@ project(Controller)
 # Temporarily.
 set(CMAKE_BUILD_TYPE Debug)
 
+set(CMAKE_C_COMPILER clang)
+set(CMAKE_CXX_COMPILER clang++)
+
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
@@ -12,11 +15,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(controller-test main.cpp)
 
-add_subdirectory(../../controller ../../controller/bin)
+add_subdirectory(../../controller build)
 
 target_link_libraries(controller-test controller)
 
-set_target_properties(controller-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY bin
+set_target_properties(controller-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY build
                                                  OUTPUT_NAME controller-test)
-
-include_directories(./ ../../controller/src)

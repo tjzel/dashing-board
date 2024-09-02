@@ -15,34 +15,34 @@
  * MODE | PID | DATA
  */
 struct Message {
-  static byte calculateChecksum(const byte format, const byte target,
-                                const byte source,
-                                const std::span<const byte> data);
+  static Byte calculateChecksum(const Byte format, const Byte target,
+                                const Byte source,
+                                const std::span<const Byte> data);
 
-  byte dataSize() const;
+  Byte dataSize() const;
 
   bool isOBD2Message() const;
 
-  Message(const byte format, const byte target, const byte source,
-          std::vector<byte> data);
+  Message(const Byte format, const Byte target, const Byte source,
+          std::vector<Byte> data);
 
-  operator std::vector<byte>() const;
+  operator std::vector<Byte>() const;
 
-  static constexpr byte MINIMAL_MESSAGE_SIZE = 4;
-  static constexpr byte REQUEST_HEADER_SIZE_MASK = 0x0f;
+  static constexpr Byte MINIMAL_MESSAGE_SIZE = 4;
+  static constexpr Byte REQUEST_HEADER_SIZE_MASK = 0x0f;
 
-  byte format;
-  byte target;
-  byte source;
-  std::vector<byte> data;
-  byte checksum;
+  Byte format;
+  Byte target;
+  Byte source;
+  std::vector<Byte> data;
+  Byte checksum;
 };
 
 struct OBD2Message {
-  byte mode() const;
-  byte pid() const;
-  byte obd2DataSize() const;
-  const std::span<const byte> obd2Data() const;
+  Byte mode() const;
+  Byte pid() const;
+  Byte obd2DataSize() const;
+  const std::span<const Byte> obd2Data() const;
   OBD2Message(Message &message);
   CommandLiteral command() const;
 

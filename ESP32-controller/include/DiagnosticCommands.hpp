@@ -1,0 +1,1 @@
+../../controller/src/DiagnosticCommands.hpp

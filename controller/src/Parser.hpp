@@ -10,7 +10,7 @@
 #include <vector>
 
 template <DiagnosticCommands::Command TCommand> struct Parser {
-  static auto parse(std::span<const byte>) ->
+  static auto parse(std::span<const Byte>) ->
       typename TCommand::ParsingFormula::ValueType {
     throw std::runtime_error("No parser found for command " +
                              std::to_string(TCommand::mode) + ":" +
@@ -18,7 +18,7 @@ template <DiagnosticCommands::Command TCommand> struct Parser {
   }
 
   static auto reverseParse(const typename TCommand::ParsingFormula::ValueType)
-      -> std::vector<byte> {
+      -> std::vector<Byte> {
     throw std::runtime_error("No reverse parser found for command " +
                              std::to_string(TCommand::mode) + ":" +
                              std::to_string(TCommand::pid));
@@ -34,7 +34,7 @@ template <DiagnosticCommands::Command TCommand>
   requires std::is_same_v<typename TCommand::ParsingFormula,
                           ParsingFormulas::CommandAvailability>
 struct Parser<TCommand> {
-  static auto parse(const std::span<const byte> message) ->
+  static auto parse(const std::span<const Byte> message) ->
       typename TCommand::ParsingFormula::ValueType {
     const auto data = message.subspan(2);
     std::map<CommandLiteral, bool> availability;
@@ -46,7 +46,7 @@ struct Parser<TCommand> {
         if (!bit) {
           continue;
         }
-        const byte keyOffset = commandOffset + byteOffset + i;
+        const Byte keyOffset = commandOffset + byteOffset + i;
         const CommandLiteral key = {TCommand::mode, keyOffset};
         availability[key] = bit;
       }
@@ -56,7 +56,7 @@ struct Parser<TCommand> {
   }
 
   static auto reverseParse(const typename TCommand::ParsingFormula::ValueType)
-      -> const std::vector<byte> {
+      -> const std::vector<Byte> {
     throw std::runtime_error("Not implemented");
   }
 };
@@ -71,7 +71,7 @@ template <DiagnosticCommands::Command TCommand>
       ParsingFormulas::Identity<TCommand::ParsingFormula::byteCount,
                                 typename TCommand::ParsingFormula::ValueType>>
 struct Parser<TCommand> {
-  static auto parse(std::span<const byte> message) ->
+  static auto parse(std::span<const Byte> message) ->
 
       typename TCommand::ParsingFormula::ValueType {
     const auto data = message.subspan(2);
@@ -84,8 +84,8 @@ struct Parser<TCommand> {
   }
 
   static auto reverseParse(typename TCommand::ParsingFormula::ValueType result)
-      -> const std::vector<byte> {
-    std::vector<byte> data(TCommand::ParsingFormula::byteCount);
+      -> const std::vector<Byte> {
+    std::vector<Byte> data(TCommand::ParsingFormula::byteCount);
     for (size_t i = 0; i < data.size(); i++) {
       data[i] = result % 256;
       result /= 256;
@@ -106,7 +106,7 @@ template <DiagnosticCommands::Command TCommand>
                                   TCommand::ParsingFormula::Nominator,
                                   TCommand::ParsingFormula::Denominator>>
 struct Parser<TCommand> {
-  static auto parse(const std::span<const byte> message) ->
+  static auto parse(const std::span<const Byte> message) ->
       typename TCommand::ParsingFormula::ValueType {
     const auto data = message.subspan(2);
     assert(data.size() == TCommand::ParsingFormula::byteCount);
@@ -120,11 +120,11 @@ struct Parser<TCommand> {
   }
 
   static auto reverseParse(typename TCommand::ParsingFormula::ValueType result)
-      -> std::vector<byte> {
+      -> std::vector<Byte> {
     result = result * TCommand::ParsingFormula::Denominator /
              TCommand::ParsingFormula::Nominator;
 
-    std::vector<byte> data(TCommand::ParsingFormula::byteCount);
+    std::vector<Byte> data(TCommand::ParsingFormula::byteCount);
     for (int i = data.size() - 1; i > -1; i--) {
       data[i] = result % 256;
       result /= 256;

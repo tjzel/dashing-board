@@ -1,4 +1,4 @@
 CompileFlags:
   Add:
     - -xc++
-    - -std=c++20
+    - -std=c++23

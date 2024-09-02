@@ -4,8 +4,9 @@
 #include <iostream>
 
 int main() {
-  CommunicatorMock communicator{};
-  RequestHandler handler(communicator, communicator);
+  ControllerCommunicatorProxyMock comm;
+  DebugCommunicatorMock debugComm;
+  RequestHandler handler(comm, debugComm);
 
   handler.loadAvailability();
   handler.printAvailableCommands();

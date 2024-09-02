@@ -1,8 +1,8 @@
 #ifndef COMMUNICATOR_MOCK_HPP
 #define COMMUNICATOR_MOCK_HPP
 
-#include "Parser.hpp"
 #include <DiagnosticCommands.hpp>
+#include <EcuMock.hpp>
 #include <ICommunicator.hpp>
 #include <Message.hpp>
 #include <RequestHandler.hpp>
@@ -12,97 +12,82 @@
 using namespace DiagnosticCommands;
 
 constexpr size_t BUFFER_SIZE = 128;
-using ByteBuffer = std::array<byte, BUFFER_SIZE>;
+using ByteBuffer = std::array<Byte, BUFFER_SIZE>;
 
-class DataProvider {
+class CommunicatorBufferMock;
+
+class EcuCommunicatorProxyMock {
 public:
-  int get();
+  Byte read();
+  bool available();
 
-  DataProvider(int initialValue, int step, int sign, int bottomThreshold,
-               int topThreshold);
+  void write(Byte byte);
+  void write(const std::vector<Byte> &message);
+
+  EcuCommunicatorProxyMock(CommunicatorBufferMock &communicatorBufferMock);
 
 private:
-  int _value;
-  int _step;
-  int _sign;
-  int _bottomThreshold;
-  int _topThreshold;
+  CommunicatorBufferMock &_communicatorBufferMock;
 };
 
-class CommunicatorMock {
+class CommunicatorBufferMock {
 public:
-  byte read();
+  Byte controllerRead();
+  bool controllerReadAvailable();
+  void controllerWrite(Byte byte);
+  void controllerWrite(const std::vector<Byte> &message);
 
-  void write(const std::vector<byte> &message);
+  Byte ecuRead();
+  bool ecuReadAvailable();
+  void ecuWrite(Byte byte);
+  void ecuWrite(const std::vector<Byte> &message);
 
-  void write(byte byte);
-
-  static void print(byte byte);
-
-  static void print(const std::string &str);
-
-  static void println(byte byte);
-
-  static void println(const std::string &str);
-
-  static void println();
+  CommunicatorBufferMock();
 
 private:
-  bool hasValidInputMessage();
-  void handleInput();
-  void sendResponse(const byte mode, const byte pid,
-                    const std::span<const byte> obd2Payload);
-  void send(const Message &message);
+  ByteBuffer _controllerBuffer{};
+  ByteBuffer::iterator _controllerBegin = _controllerBuffer.begin();
+  ByteBuffer::iterator _controllerEnd = _controllerBuffer.begin();
+  std::span<Byte> _controllerBufferView{_controllerBegin, _controllerEnd};
+  void _onControllerBufferChanged();
+  void _onControllerBufferReadWhenEmpty();
 
-  template <Command TCommand> void respond() {};
+  ByteBuffer _ecuBuffer{};
+  ByteBuffer::iterator _ecuBegin = _ecuBuffer.begin();
+  ByteBuffer::iterator _ecuEnd = _ecuBuffer.begin();
+  std::span<Byte> _ecuBufferView{_ecuBegin, _ecuEnd};
+  void _onEcuBufferChanged();
+  void _onEcuBufferWrite();
 
-  template <> void respond<COMMAND_AVAILABILITY_00_1F>() {
-    const byte mode = COMMAND_AVAILABILITY_00_1F::mode;
-    const byte pid = COMMAND_AVAILABILITY_00_1F::pid;
-    const std::array<byte,
-                     COMMAND_AVAILABILITY_00_1F::ParsingFormula::byteCount>
-        data{0x00, 0x18, 0x00, 0x00};
-
-    sendResponse(mode, pid, data);
-  }
-
-  template <> void respond<ENGINE_RPM>() {
-    const byte mode = ENGINE_RPM::mode;
-    const byte pid = ENGINE_RPM::pid;
-    const auto data = Parser<ENGINE_RPM>::reverseParse(_rpmProvider.get());
-
-    sendResponse(mode, pid, data);
-  };
-
-  template <> void respond<VEHICLE_SPEED>() {
-    const byte mode = VEHICLE_SPEED::mode;
-    const byte pid = VEHICLE_SPEED::pid;
-    const auto data = Parser<VEHICLE_SPEED>::reverseParse(_speedProvider.get());
-
-    sendResponse(mode, pid, data);
-  };
-
-  void handleDiagnosticRequest(const CommandLiteral pid);
-
-  static constexpr byte ECU_ADDRESS = 0x33;
-  static constexpr byte REQUEST_HEADER = 0xC0;
-  static constexpr byte RESPONSE_HEADER = 0x80;
-  static constexpr byte REQUEST_HEADER_MODE_MASK = 0xf0;
-  static constexpr byte OBD2_HEADER_SIZE = 0x02;
-
-  ByteBuffer _inputBuffer{};
-  ByteBuffer::iterator _inputEnd = _inputBuffer.begin();
-  ByteBuffer _outputBuffer{};
-  ByteBuffer::iterator _outputBegin = _outputBuffer.begin();
-  ByteBuffer::iterator _outputEnd = _outputBuffer.begin();
-  Message _inputMessage{0x00, 0x00, 0x00, {}};
-  Message _outputMessage{0x00, 0x00, 0x00, {}};
-  bool _hasValidInputMessage = false;
-  DataProvider _speedProvider{10, 1, 1, 10, 100};
-  DataProvider _rpmProvider{800, 100, 1, 800, 4000};
+  EcuCommunicatorProxyMock _ecuCommunicatorProxyMock;
+  EcuMock<EcuCommunicatorProxyMock> _ecuMock;
 };
 
-static_assert(ICommunicator<CommunicatorMock>);
-static_assert(IDebugCommunicator<CommunicatorMock>);
+class ControllerCommunicatorProxyMock {
+public:
+  Byte read();
+  bool available();
+
+  void write(Byte byte);
+  void write(const std::vector<Byte> &message);
+
+  ControllerCommunicatorProxyMock();
+
+private:
+  CommunicatorBufferMock _communicatorBufferMock;
+};
+
+class DebugCommunicatorMock {
+public:
+  void print(Byte byte);
+  void print(const std::string &str);
+  void println(Byte byte);
+  void println(const std::string &str);
+  void println();
+};
+
+static_assert(ICommunicator<ControllerCommunicatorProxyMock>);
+static_assert(ICommunicator<EcuCommunicatorProxyMock>);
+static_assert(IDebugCommunicator<DebugCommunicatorMock>);
 
 #endif // COMMUNICATOR_MOCK_HPP
