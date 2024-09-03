@@ -5,6 +5,10 @@ byte SerialCommunicator::read() {
   return _serial.read();
 }
 
+bool SerialCommunicator::available() {
+  return _serial.available();
+}
+
 void SerialCommunicator::write(const std::vector<byte> &message) {
   _serial.write(message.data(), message.size());
 }

@@ -4,14 +4,12 @@
 #include <Arduino.h>
 #include <DiagnosticCommands.hpp>
 #include <ICommunicator.hpp>
-// #include <Message.hpp>
-// #include <RequestHandler.hpp>
-// #include <span>
 #include <string>
 
 class SerialCommunicator {
 public:
   byte read();
+  bool available();
   void write(const std::vector<byte> &message);
   void write(byte byte);
   SerialCommunicator(Stream &serial);

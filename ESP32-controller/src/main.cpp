@@ -4,10 +4,10 @@
 #include <RequestHandler.hpp>
 #include <iostream>
 
-HardwareSerial sniffSerial(1);
+HardwareSerial sniffSerial(2);
 
-constexpr auto sniffRx = 19;
-constexpr auto sniffTx = TX2;
+constexpr auto sniffRx = RX2; // 16
+constexpr auto sniffTx = TX2; // 17
 constexpr auto analogSniffer = 26;
 
 SerialCommunicator serialCommunicator(Serial2);
