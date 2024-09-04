@@ -1,8 +1,7 @@
 #include <Arduino.h>
 #include <DiagnosticCommands.hpp>
-#include <SerialCommunicator.hpp>
 #include <RequestHandler.hpp>
-#include <iostream>
+#include <SerialCommunicator.hpp>
 
 HardwareSerial sniffSerial(2);
 

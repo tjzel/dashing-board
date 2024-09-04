@@ -8,14 +8,13 @@
 
 class SerialCommunicator {
 public:
-  byte read();
+  byte read(const size_t timeout = 50);
   bool available();
   void write(const std::vector<byte> &message);
   void write(byte byte);
   SerialCommunicator(Stream &serial);
 
 private:
-
   Stream &_serial;
 };
 
@@ -37,4 +36,3 @@ private:
 static_assert(IDebugCommunicator<DebugSerialCommunicator>);
 
 #endif // SERIAL_COMMUNICATOR_HPP
-

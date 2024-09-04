@@ -1,42 +1,32 @@
 #include "SerialCommunicator.hpp"
 
-byte SerialCommunicator::read() { 
-  while(!_serial.available()) {}
+byte SerialCommunicator::read(const size_t timeout) {
+  const auto start = millis();
+  while (!available()) {
+    if (millis() - start > timeout) {
+      // TODO: Log the timeout.
+      return 0x00;
+    }
+  }
   return _serial.read();
 }
 
-bool SerialCommunicator::available() {
-  return _serial.available();
-}
+bool SerialCommunicator::available() { return _serial.available(); }
 
-void SerialCommunicator::write(const std::vector<byte> &message) {
-  _serial.write(message.data(), message.size());
-}
+void SerialCommunicator::write(const std::vector<byte> &message) { _serial.write(message.data(), message.size()); }
 
-void SerialCommunicator::write(byte byte) {
-  _serial.write(byte);
-}
+void SerialCommunicator::write(byte byte) { _serial.write(byte); }
 
-SerialCommunicator::SerialCommunicator(Stream &serial): _serial(serial) {}
+SerialCommunicator::SerialCommunicator(Stream &serial) : _serial(serial) {}
 
-void DebugSerialCommunicator::print(byte byte) {
-  _serial.print(byte, HEX);
-}
+void DebugSerialCommunicator::print(byte byte) { _serial.print(byte, HEX); }
 
-void DebugSerialCommunicator::print(const std::string &str) {
-  _serial.print(str.c_str());
-}
+void DebugSerialCommunicator::print(const std::string &str) { _serial.print(str.c_str()); }
 
-void DebugSerialCommunicator::println(byte byte) {
-  _serial.println(byte, HEX);
-}
+void DebugSerialCommunicator::println(byte byte) { _serial.println(byte, HEX); }
 
-void DebugSerialCommunicator::println(const std::string &str) {
-  _serial.println(str.c_str());
-}
+void DebugSerialCommunicator::println(const std::string &str) { _serial.println(str.c_str()); }
 
-void DebugSerialCommunicator::println() {
-  _serial.println();
-}
+void DebugSerialCommunicator::println() { _serial.println(); }
 
-DebugSerialCommunicator::DebugSerialCommunicator(Stream &serial): _serial(serial) {}
+DebugSerialCommunicator::DebugSerialCommunicator(Stream &serial) : _serial(serial) {}
