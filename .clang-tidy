@@ -1,0 +1,17 @@
+Checks:
+  - bugprone-*,
+  - clang-analyzer-*,
+  - concurrency-*,
+  - cppcoreguidelines-*,
+  - google-*,
+  - -google-readability-todo,
+  - llvm-*,
+  - misc-*,
+  - -misc-non-private-member-variables-in-classes,
+  - modernize-*,
+  - -modernize-use-trailing-return-type,
+  - performance-*,
+  - portability-*,
+  - readability-*"
+# CheckOptions:
+FormatStyle: llvm
