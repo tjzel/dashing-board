@@ -19,8 +19,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(controller-test main.cpp)
 
-add_subdirectory(../../controller build)
-
 target_link_libraries(controller-test controller)
 
 set_target_properties(controller-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY build

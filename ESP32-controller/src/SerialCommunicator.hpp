@@ -8,7 +8,7 @@
 
 class SerialCommunicator {
 public:
-  byte read(const size_t timeout = 50);
+  byte read(const size_t timeout = 1000000);
   bool available();
   void write(const std::vector<byte> &message);
   void write(byte byte);
@@ -16,6 +16,11 @@ public:
 
 private:
   Stream &_serial;
+  unsigned long _time = micros();
+  unsigned long _waitTime = micros();
+  unsigned long _writeTime = micros();
+  unsigned long _dumpTime = micros();
+  size_t _operationCount = 0;
 };
 
 static_assert(ICommunicator<SerialCommunicator>);
