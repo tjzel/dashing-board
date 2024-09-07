@@ -35,13 +35,13 @@ private:
       auto responseWrapper = _ecuCore.request(obd2Message);
       if (responseWrapper.hasResponse) {
         // TODO: DRY
-        _comm.write(responseWrapper.response);
+        _comm.write(std::vector<Byte>{responseWrapper.response});
       }
     } else {
       auto responseWrapper = _ecuCore.request(message);
       if (responseWrapper.hasResponse) {
         // TODO: DRY
-        _comm.write(responseWrapper.response);
+        _comm.write(std::vector<Byte>{responseWrapper.response});
       }
     }
   }

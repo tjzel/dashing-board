@@ -1,19 +1,16 @@
 #ifndef REQUEST_HANDLER_HPP
 #define REQUEST_HANDLER_HPP
-#include "ICommunicator.hpp"
 #include "Utils.hpp"
 #include <DataFrame.hpp>
 #include <DiagnosticCommands.hpp>
+#include <ICommunicator.hpp>
 #include <Parser.hpp>
+#include <StateReader.hpp>
 #include <map>
 #include <vector>
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator> class RequestHandler {
 public:
-  explicit RequestHandler(TCommunicator &comm, TDebugCommunicator &debugComm) : _comm(comm), _debugComm(debugComm) {
-    _availableCommands[DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::value] = true;
-  }
-
   template <DiagnosticCommands::Command TCommand> typename TCommand::ParsingFormula::ValueType get() {
     const auto command = TCommand::value;
     const auto response = request(command);
@@ -67,112 +64,35 @@ public:
   }
 
   bool sniff() {
-    Byte header;
-    do {
-      header = _comm.read();
-      if (header != 0) {
-        _debugComm.print("Header: ");
-        _debugComm.println(header);
-      }
-    } while (!((header >= 0x80 && header <= 0x8f) || (header >= 0xc0 && header <= 0xcf)));
-
-    Byte dataLength = header % 0x10;
-
-    const Byte receiver = _comm.read();
-
-    const Byte sender = _comm.read();
-
-    std::vector<Byte> data(dataLength);
-    for (int i = 0; i < dataLength; i++) {
-      data[i] = _comm.read();
+    while (!_stateReader.feed(_comm.read())) {
+      ;
     }
-
-    const Byte checksum = _comm.read();
-
-    // if (header >= 0x80 && header <= 0x8f) {
-    //   _debugComm.println("Echo read");
-    //   return true;
-    // }
-
-    _debugComm.println("Frame received:");
-    _debugComm.print("    Header: ");
-    _debugComm.println(header);
-    _debugComm.print("    Data length: ");
-    _debugComm.println(dataLength);
-    _debugComm.print("    Receiver: ");
-    _debugComm.println(receiver);
-    _debugComm.print("    Sender: ");
-    _debugComm.println(sender);
-    _debugComm.print("    Data: ");
-    for (int i = 0; i < dataLength; i++) {
-      _debugComm.print(data[i]);
-      _debugComm.print(" ");
-    }
-    _debugComm.println();
-    _debugComm.print("    Checksum: ");
-    _debugComm.println(checksum);
-
-    return false;
+    auto message = _stateReader.getMessage();
+    printMessage(message, _debugComm);
   }
 
   std::vector<Byte> request(CommandLiteral command) {
-
-    std::vector<Byte> packet{0xc2, 0x33, 0xf1, command.mode, command.pid, 0x00};
-    packet.back() = calculateChecksum(packet);
-    _comm.write(packet);
+    Message message{0xc2, 0x33, 0xf1, {command.mode, command.pid}};
+    _comm.write(message);
 
     _debugComm.println("Request sent:");
-    for (uint i = 0; i < packet.size(); i++) {
-      _debugComm.print(packet[i]);
-      _debugComm.print(" ");
+    printMessage(message, _debugComm);
+
+    while (!_stateReader.feed(_comm.read())) {
+      ;
     }
-    _debugComm.println();
+    auto response = _stateReader.getMessage();
+    _debugComm.println("Response received:");
+    printMessage(response, _debugComm);
 
-    Byte header;
-    do {
-      header = _comm.read();
-      if (header != 0) {
-        _debugComm.print("Header: ");
-        _debugComm.println(header);
-      }
-    } while (!((header >= 0x80 && header <= 0x8f) || (header >= 0xc0 && header <= 0xcf)));
-
-    Byte dataLength = header % 0x10;
-
-    const Byte receiver = _comm.read();
-
-    const Byte sender = _comm.read();
-
-    std::vector<Byte> data(dataLength);
-    for (int i = 0; i < dataLength; i++) {
-      data[i] = _comm.read();
-    }
-
-    const Byte checksum = _comm.read();
-
-    _debugComm.println("Frame received:");
-    _debugComm.print("    Header: ");
-    _debugComm.println(header);
-    _debugComm.print("    Data length: ");
-    _debugComm.println(dataLength);
-    _debugComm.print("    Receiver: ");
-    _debugComm.println(receiver);
-    _debugComm.print("    Sender: ");
-    _debugComm.println(sender);
-    _debugComm.print("    Data: ");
-    for (int i = 0; i < dataLength; i++) {
-
-      _debugComm.print(data[i]);
-      _debugComm.print(" ");
-    }
-    _debugComm.println();
-    _debugComm.print("    Checksum: ");
-    _debugComm.println(checksum);
-
-    return data;
+    return message.data;
   }
 
-  bool isCommandAvailable(CommandLiteral command) const { return _availableCommands.contains(command); }
+  [[nodiscard]] bool isCommandAvailable(CommandLiteral command) const { return _availableCommands.contains(command); }
+
+  explicit RequestHandler(TCommunicator &comm, TDebugCommunicator &debugComm) : _comm(comm), _debugComm(debugComm) {
+    _availableCommands[DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::value] = true;
+  }
 
 private:
   template <DiagnosticCommands::CommandAvailability TCommand> void loadAvailabilityForCommand() {
@@ -182,20 +102,19 @@ private:
 
     const auto availability = get<TCommand>();
 
-    // static_assert(
-    //     std::is_same_v<
-    //         DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::ParsingFormula::
-    //             ValueType,
-    //         decltype(get<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>())>);
-
     for (const auto [key, value] : availability) {
-      // static_assert(std::is_same_v<decltype(key), CommandLiteral>);
       _availableCommands[key] = value;
     }
   }
 
   TCommunicator &_comm;
   TDebugCommunicator &_debugComm;
+  // TODO: These conditions are far from ideal.
+  StateReader _stateReader{
+      [](Byte byte) { return (byte & REQUEST_HEADER_MODE_MASK) == 0xc0; },
+      [](Byte) { return true; },
+      [](Byte byte) { return byte == 0xf1; },
+  };
   std::map<CommandLiteral, bool> _availableCommands;
 };
 #define REQUESTHANDLER_HPP

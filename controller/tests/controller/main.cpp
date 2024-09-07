@@ -4,11 +4,12 @@
 #include <iostream>
 
 int main() {
+  // TODO: The pattern to create an explicit mock here is silly, refactor it.
   ControllerCommunicatorProxyMock comm;
 
   Message message{0xc2, 0x33, 0xf1, {0x01, 0x0c}};
 
-  comm.write(message);
+  comm.write(std::vector<Byte>{message});
 
   while (comm.available()) {
     std::cout << std::hex << static_cast<int>(comm.read()) << " ";

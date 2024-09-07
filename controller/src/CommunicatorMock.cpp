@@ -27,7 +27,7 @@ void CommunicatorBufferMock::controllerWrite(Byte byte) {
 }
 
 void CommunicatorBufferMock::controllerWrite(const std::vector<Byte> &message) {
-  auto it = _ecuEnd;
+  auto *it = _ecuEnd;
   for (auto byte : message) {
     *it++ = byte;
   }
@@ -54,7 +54,7 @@ void CommunicatorBufferMock::ecuWrite(Byte byte) {
 }
 
 void CommunicatorBufferMock::ecuWrite(const std::vector<Byte> &message) {
-  auto it = _controllerEnd;
+  auto *it = _controllerEnd;
   for (auto byte : message) {
     *it++ = byte;
   }
@@ -76,7 +76,7 @@ void CommunicatorBufferMock::_onControllerBufferReadWhenEmpty() {
   // Simulating that another controller request was sent.
   const Message message{
       REQUEST_HEADER | OBD2_MIN_HEADER_SIZE, ECU_ADDRESS, CONTROLLER_ADDRESS, {ENGINE_RPM::mode, ENGINE_RPM::pid}};
-  controllerWrite(message);
+  controllerWrite(std::vector<Byte>{message});
 }
 
 void CommunicatorBufferMock::_onEcuBufferChanged() {
