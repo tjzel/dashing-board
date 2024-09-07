@@ -1,7 +1,8 @@
 #ifndef STATE_READER_HPP
 #define STATE_READER_HPP
 
-#include "Message.hpp"
+#include <Message.hpp>
+#include <functional>
 #include <vector>
 
 enum State {
