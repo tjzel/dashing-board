@@ -1,69 +1,54 @@
-#include "SerialCommunicator.hpp"
+#include <SerialCommunicator.hpp>
 #include <iostream>
 
-byte SerialCommunicator::read(const size_t timeout) {
-  const auto start = micros();
-  while (!available()) {
-    if (micros() - start > timeout) {
-      // TODO: Log the timeout.
-      // std::cout << "Timeout" << std::endl;
-      return 0x00;
-    }
+int SerialCommunicator::read(const size_t timeout) {
+  const auto start = millis();
+  while (!_serial.available() && millis() - start < timeout) {
+    ;
   }
-  // std::cout << "Time spent waiting: " << (micros() - start) << "ms\n";
-  _waitTime += micros() - start;
   return _serial.read();
 }
 
 bool SerialCommunicator::available() { return _serial.available(); }
 
-void SerialCommunicator::write(const std::vector<byte> &message) {
-  // std::cout << "Sending:\n    ";
-  // for (auto byte : message) {
-  //   std::cout << std::hex << static_cast<int>(byte) << " ";
-  // }
-  // std::cout << std::endl;
-  // std::cout << "\n    SEND OK" << std::endl;
-  auto writeStart = micros();
-  _serial.write(message.data(), message.size());
-  auto writeTime = micros() - writeStart;
-  // We need to dump the echo
-  auto dumpStart = micros();
+void SerialCommunicator::write(const std::vector<Byte> &message) {
+  for (auto byte : message) {
+    _serial.write(byte);
+  };
   for (auto byte : message) {
     read();
-  }
-  auto dumpTime = micros() - dumpStart;
-  _operationCount++;
-  _writeTime += writeTime;
-  _dumpTime += dumpTime;
-  if (_operationCount == 100) {
-    auto elapsed = micros() - _time;
-    std::cout << "Time elapsed: " << elapsed / 1000000.0 << "s\n";
-    std::cout << "Operations per second: " << 100.0 / (elapsed / 1000000.0) << "\n";
-    std::cout << "Wait time: " << _waitTime / 1000000.0 << "s\n";
-    std::cout << "Write time: " << _writeTime / 1000000.0 << "s\n";
-    std::cout << "Dump time: " << _dumpTime / 1000000.0 << "s\n";
-    std::cout << std::endl;
-    _time = micros();
-    _waitTime = 0;
-    _dumpTime = 0;
-    _writeTime = 0;
-    _operationCount = 0;
-  }
-  // auto now = micros();
-  // // std::cout << "Time elapsed: " << (now - _time) << "ms\n";
-  // _time = now;
+  };
 }
 
-void SerialCommunicator::write(byte byte) { _serial.write(byte); }
+void SerialCommunicator::write(Byte byte) {
+  _serial.write(byte);
+  // We need to dump the echo.
+  read();
+}
 
-SerialCommunicator::SerialCommunicator(Stream &serial) : _serial(serial) {}
+void SerialCommunicator::fastInit() {
+  _serial.end();
+  // gpio_reset_pin(_rx);
+  // gpio_reset_pin(_tx);
+  pinMode(_rx, INPUT_PULLUP);
+  pinMode(_tx, OUTPUT);
+  digitalWrite(_tx, LOW);
+  delay(25);
+  digitalWrite(_tx, HIGH);
+  delay(25);
+  // gpio_reset_pin(_tx);
+  // pinMode(_rx, INPUT_PULLUP);
+  _serial.begin(_baudRate, SERIAL_8N1, _rx, _tx);
+};
 
-void DebugSerialCommunicator::print(byte byte) { _serial.print(byte, HEX); }
+SerialCommunicator::SerialCommunicator(const uint serialNumber, const gpio_num_t rx, const gpio_num_t tx)
+    : _serialNumber(serialNumber), _rx(rx), _tx(tx), _serial(HardwareSerial(serialNumber)) {}
+
+void DebugSerialCommunicator::print(Byte byte) { _serial.print(byte, HEX); }
 
 void DebugSerialCommunicator::print(const std::string &str) { _serial.print(str.c_str()); }
 
-void DebugSerialCommunicator::println(byte byte) { _serial.println(byte, HEX); }
+void DebugSerialCommunicator::println(Byte byte) { _serial.println(byte, HEX); }
 
 void DebugSerialCommunicator::println(const std::string &str) { _serial.println(str.c_str()); }
 

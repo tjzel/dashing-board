@@ -1,25 +1,32 @@
-#include "Message.hpp"
-#include "Utils.hpp"
 #include <ICommunicator.hpp>
+#include <Message.hpp>
 #include <StateReader.hpp>
+#include <Utils.hpp>
 #include <cassert>
+#include <iostream>
 #include <utility>
 
 // TODO: Split it into multiple functions.
-bool StateReader::feed(const Byte byte) {
+bool StateReader::feed(const int byte) {
+  if (byte == -1) {
+    reset();
+    return false;
+  };
   switch (_state) {
   case WAITING_FOR_HEADER:
-    if (!_isHeaderValid(byte)) {
+    // TODO: Add own wrappers with default behavior.
+    if (!_isHeaderValid(byte) || !(byte & 0xC0)) {
       reset();
       return false;
     }
     _header = byte;
     _dataSize = _header & Message::REQUEST_HEADER_SIZE_MASK;
     _state = WAITING_FOR_TARGET;
+    _timestamp = _getTimestamp();
     break;
 
   case WAITING_FOR_TARGET:
-    if (!_isTargetValid(byte)) {
+    if (_getTimestamp() - _timestamp > DropoutTime) {
       reset();
       return false;
     }
@@ -28,7 +35,7 @@ bool StateReader::feed(const Byte byte) {
     break;
 
   case WAITING_FOR_SOURCE:
-    if (!_isSourceValid(byte)) {
+    if (_getTimestamp() - _timestamp > DropoutTime) {
       reset();
       return false;
     }
@@ -43,6 +50,10 @@ bool StateReader::feed(const Byte byte) {
     break;
 
   case WAITING_FOR_DATA:
+    if (_getTimestamp() - _timestamp > DropoutTime) {
+      reset();
+      return false;
+    }
     *_dataIter++ = byte;
     if (_dataIter == _data.end()) {
       _state = WAITING_FOR_CHECKSUM;
@@ -50,6 +61,10 @@ bool StateReader::feed(const Byte byte) {
     break;
 
   case WAITING_FOR_CHECKSUM:
+    if (_getTimestamp() - _timestamp > DropoutTime) {
+      reset();
+      return false;
+    }
     _checksum = byte;
     if (!_isHeaderValid(_header) || !_isSourceValid(_source) || !_isTargetValid(_target) || !isChecksumValid()) {
       reset();
@@ -68,9 +83,10 @@ Message StateReader::getMessage() {
   return message;
 }
 
-StateReader::StateReader(IsValidFn isHeaderValid, IsValidFn isTargetValid, IsValidFn isSourceValid)
+StateReader::StateReader(IsValidFn isHeaderValid, IsValidFn isTargetValid, IsValidFn isSourceValid,
+                         TimestampProvider getTimestamp)
     : _isHeaderValid(std::move(isHeaderValid)), _isTargetValid(std::move(isTargetValid)),
-      _isSourceValid(std::move(isSourceValid)) {}
+      _isSourceValid(std::move(isSourceValid)), _getTimestamp(std::move(getTimestamp)) {}
 
 void StateReader::reset() {
   _state = WAITING_FOR_HEADER;

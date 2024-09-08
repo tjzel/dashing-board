@@ -12,7 +12,6 @@ Byte calculateChecksum(const std::span<const Byte> &message);
 bool isMessageValid(const std::span<const Byte> &message, const Byte checksum);
 
 template <IDebugCommunicator TDebugCommunicator> void printMessage(const Message &message, TDebugCommunicator &debugComm) {
-  debugComm.println("Message received:");
   debugComm.print("    Format: ");
   debugComm.println(message.format);
   debugComm.print("    Target: ");

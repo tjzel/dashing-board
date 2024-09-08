@@ -3,36 +3,40 @@
 
 #include <Arduino.h>
 #include <DiagnosticCommands.hpp>
+#include <HardwareSerial.h>
 #include <ICommunicator.hpp>
-#include <string>
+
+using Byte = uint8_t;
 
 class SerialCommunicator {
 public:
-  byte read(const size_t timeout = 1000000);
+  int read(const size_t timeout = 100);
   bool available();
-  void write(const std::vector<byte> &message);
-  void write(byte byte);
-  SerialCommunicator(Stream &serial);
+  void write(const std::vector<Byte> &message);
+  void write(Byte byte);
+  void fastInit();
+
+  explicit SerialCommunicator(const uint serialNumber, const gpio_num_t, const gpio_num_t tx);
 
 private:
-  Stream &_serial;
-  unsigned long _time = micros();
-  unsigned long _waitTime = micros();
-  unsigned long _writeTime = micros();
-  unsigned long _dumpTime = micros();
-  size_t _operationCount = 0;
+  static constexpr uint _baudRate = 10400;
+
+  uint _serialNumber;
+  gpio_num_t _rx;
+  gpio_num_t _tx;
+  HardwareSerial _serial;
 };
 
 static_assert(ICommunicator<SerialCommunicator>);
 
 class DebugSerialCommunicator {
 public:
-  void print(byte byte);
+  void print(Byte byte);
   void print(const std::string &str);
-  void println(byte byte);
+  void println(Byte byte);
   void println(const std::string &str);
   void println();
-  DebugSerialCommunicator(Stream &serial);
+  explicit DebugSerialCommunicator(Stream &serial);
 
 private:
   Stream &_serial;

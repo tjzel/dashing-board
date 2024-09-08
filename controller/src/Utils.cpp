@@ -2,18 +2,18 @@
 
 using Byte = uint8_t;
 
-constexpr Byte BYTE_MAX = 0xff;
+constexpr uint BYTE_MAX = 0x100;
 
 Byte calculateChecksum(const Byte header, const Byte target, const Byte source, const std::span<const Byte> &data) {
   uint checksum = 0;
-  checksum = (checksum + header);
-  checksum = (checksum + target);
-  checksum = (checksum + source);
+  checksum += header;
+  checksum += target;
+  checksum += source;
   for (const auto readByte : data) {
     checksum += readByte;
   }
   checksum = checksum % BYTE_MAX;
-  return checksum;
+  return static_cast<Byte> checksum;
 }
 
 Byte calculateChecksum(const std::span<const Byte> &message) {
@@ -22,7 +22,7 @@ Byte calculateChecksum(const std::span<const Byte> &message) {
     checksum += readByte;
   }
   checksum = checksum % BYTE_MAX;
-  return checksum;
+  return static_cast<Byte>(checksum);
 }
 
 bool isMessageValid(const std::span<const Byte> &message, const Byte checksum) {

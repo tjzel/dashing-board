@@ -24,10 +24,21 @@ public:
   void write(Byte byte);
   void write(const std::vector<Byte> &message);
 
+  void fastInit();
+
   EcuCommunicatorProxyMock(CommunicatorBufferMock &communicatorBufferMock);
 
 private:
   CommunicatorBufferMock &_communicatorBufferMock;
+};
+
+class DebugCommunicatorMock {
+public:
+  void print(Byte byte);
+  void print(const std::string &str);
+  void println(Byte byte);
+  void println(const std::string &str);
+  void println();
 };
 
 class CommunicatorBufferMock {
@@ -60,7 +71,7 @@ private:
   void _onEcuBufferWrite();
 
   EcuCommunicatorProxyMock _ecuCommunicatorProxyMock;
-  EcuMock<EcuCommunicatorProxyMock> _ecuMock;
+  EcuMock<EcuCommunicatorProxyMock, DebugCommunicatorMock> _ecuMock;
 };
 
 class ControllerCommunicatorProxyMock {
@@ -71,19 +82,12 @@ public:
   void write(Byte byte);
   void write(const std::vector<Byte> &message);
 
+  void fastInit();
+
   ControllerCommunicatorProxyMock();
 
 private:
   CommunicatorBufferMock _communicatorBufferMock;
-};
-
-class DebugCommunicatorMock {
-public:
-  void print(Byte byte);
-  void print(const std::string &str);
-  void println(Byte byte);
-  void println(const std::string &str);
-  void println();
 };
 
 static_assert(ICommunicator<ControllerCommunicatorProxyMock>);

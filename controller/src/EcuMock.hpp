@@ -8,9 +8,10 @@
 #include <Message.hpp>
 #include <Parser.hpp>
 #include <StateReader.hpp>
+#include <Utils.hpp>
 #include <cassert>
 
-template <ICommunicator TCommunicator> class EcuMock {
+template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator> class EcuMock {
 public:
   void inputArrivedHandler() {
     while (_comm.available()) {
@@ -18,7 +19,7 @@ public:
     }
   };
 
-  explicit EcuMock(TCommunicator &comm) : _comm(comm) {}
+  explicit EcuMock(TCommunicator &comm, TDebugCommunicator &debugComm) : _comm(comm), _debugComm(debugComm) {}
 
 private:
   void handleInput() {
@@ -26,8 +27,8 @@ private:
     if (!_stateReader.feed(byte)) {
       return;
     };
-
     auto message = _stateReader.getMessage();
+    printMessage(message, _debugComm);
 
     // TODO: We drop non-OBD2 messages, but we should handle at least init protocol.
     if (message.isOBD2Message()) {
@@ -48,6 +49,7 @@ private:
 
   // TODO: Use something better than references.
   TCommunicator &_comm;
+  TDebugCommunicator &_debugComm;
   StateReader _stateReader{
       // TODO: Fix magic number.
       [](Byte byte) { return (byte & REQUEST_HEADER_MODE_MASK) == 0xc0; },
