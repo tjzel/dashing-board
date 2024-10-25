@@ -50,12 +50,9 @@ private:
   // TODO: Use something better than references.
   TCommunicator &_comm;
   TDebugCommunicator &_debugComm;
-  StateReader _stateReader{
-      // TODO: Fix magic number.
-      [](Byte byte) { return (byte & REQUEST_HEADER_MODE_MASK) == 0xc0; },
-      [](Byte byte) { return byte == ECU_ADDRESS; },
-      [](Byte) { return true; },
-  };
+  StateReader _stateReader{// TODO: Fix magic number.
+                           [](int byte) { return (byte & REQUEST_HEADER_MODE_MASK) == 0xc0; },
+                           [](int byte) { return byte == ECU_ADDRESS; }, [](int) { return true; }, []() { return 0; }};
   EcuCore _ecuCore{};
 };
 

@@ -62,7 +62,8 @@ void CommunicatorBufferMock::ecuWrite(const std::vector<Byte> &message) {
   _onControllerBufferChanged();
 }
 
-CommunicatorBufferMock::CommunicatorBufferMock() : _ecuCommunicatorProxyMock(*this), _ecuMock(_ecuCommunicatorProxyMock) {}
+CommunicatorBufferMock::CommunicatorBufferMock()
+    : _ecuCommunicatorProxyMock(*this), _ecuMock(_ecuCommunicatorProxyMock, _debugCommunicatorMock) {}
 
 void CommunicatorBufferMock::_onControllerBufferChanged() {
   if (_controllerBegin == _controllerEnd) {
@@ -93,7 +94,7 @@ void CommunicatorBufferMock::_onEcuBufferWrite() { _ecuMock.inputArrivedHandler(
 
 /* #region Proxies */
 
-Byte ControllerCommunicatorProxyMock::read() { return _communicatorBufferMock.controllerRead(); }
+int ControllerCommunicatorProxyMock::read() { return _communicatorBufferMock.controllerRead(); }
 
 bool ControllerCommunicatorProxyMock::available() { return _communicatorBufferMock.controllerReadAvailable(); }
 
@@ -105,7 +106,7 @@ void ControllerCommunicatorProxyMock::write(const std::vector<Byte> &message) {
 
 ControllerCommunicatorProxyMock::ControllerCommunicatorProxyMock() : _communicatorBufferMock() {}
 
-Byte EcuCommunicatorProxyMock::read() { return _communicatorBufferMock.ecuRead(); }
+int EcuCommunicatorProxyMock::read() { return _communicatorBufferMock.ecuRead(); }
 
 bool EcuCommunicatorProxyMock::available() { return _communicatorBufferMock.ecuReadAvailable(); }
 

@@ -51,7 +51,6 @@ auto RequestHandler<TCommunicator, TDebugCommunicator>::get() {
   const auto command = TCommand::value;
   const auto response = request(command);
   const auto result = Parser<TCommand>::parse(response);
-  return result;
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
@@ -160,6 +159,55 @@ bool RequestHandler<TCommunicator, TDebugCommunicator>::initializeCommunication(
   }
   _debugComm.println("Communication initialized");
   _communicationInitialized = true;
+
+  /* #region Timing */
+  // TODO: Remove it.
+  // Temporary. Wait for the ECU to be ready.
+  // delay(50);
+
+  _debugComm.println("Requesting timing data");
+
+  Message timingCurrentRequest{0xc2, 0x33, 0xf1, {0x02}};
+
+  _comm.write(std::vector<Byte>{timingCurrentRequest});
+
+  while (!_stateReader.feed(_comm.read())) {
+    ;
+  }
+  auto timingCurrentResponse = _stateReader.getMessage();
+
+  _debugComm.println("Timing data:");
+
+  printMessage(timingCurrentResponse, _debugComm);
+
+  // delay(50);
+
+  Message timingLimitsRequest{0xc2, 0x33, 0xf1, {0x00}};
+
+  _comm.write(std::vector<Byte>{timingLimitsRequest});
+
+  while (!_stateReader.feed(_comm.read())) {
+    ;
+  }
+  auto timingLimitsResponse = _stateReader.getMessage();
+  printMessage(timingLimitsResponse, _debugComm);
+
+  // OG Car response:
+  // Format: 83
+  // Target: F1
+  // Source: 11
+  // Data: 7F 2 12
+  // Checksum: 18
+  // Format: 83
+  // Target: F1
+  // Source: 11
+  // Data: 7F 0 11
+  // Checksum: 15
+
+  // delay(50);
+
+  /* #endregion Timing */
+
   return true;
 }
 

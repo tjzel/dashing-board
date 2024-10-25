@@ -44,11 +44,11 @@ void loop() {
 
   // TODO: Re-initialize.
 
-  auto time = millis();
-  auto dataFrame = requestHandler.getDataFrame();
-  auto time2 = millis();
-  debugSerialCommunicator.println("Data frame received in " + std::to_string(time2 - time) + " ms");
-  debugSerialCommunicator.println(std::string{dataFrame});
+  // auto time = millis();
+  // auto dataFrame = requestHandler.getDataFrame();
+  // auto time2 = millis();
+  // debugSerialCommunicator.println("Data frame received in " + std::to_string(time2 - time) + " ms");
+  // debugSerialCommunicator.println(std::string{dataFrame});
 
   // requestHandler.sniff();
   // #region Analog sniffer

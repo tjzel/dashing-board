@@ -18,7 +18,7 @@ class CommunicatorBufferMock;
 
 class EcuCommunicatorProxyMock {
 public:
-  Byte read();
+  int read();
   bool available();
 
   void write(Byte byte);
@@ -71,12 +71,13 @@ private:
   void _onEcuBufferWrite();
 
   EcuCommunicatorProxyMock _ecuCommunicatorProxyMock;
+  DebugCommunicatorMock _debugCommunicatorMock;
   EcuMock<EcuCommunicatorProxyMock, DebugCommunicatorMock> _ecuMock;
 };
 
 class ControllerCommunicatorProxyMock {
 public:
-  Byte read();
+  int read();
   bool available();
 
   void write(Byte byte);

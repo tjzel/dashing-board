@@ -13,7 +13,7 @@ Byte calculateChecksum(const Byte header, const Byte target, const Byte source, 
     checksum += readByte;
   }
   checksum = checksum % BYTE_MAX;
-  return static_cast<Byte> checksum;
+  return static_cast<Byte>(checksum);
 }
 
 Byte calculateChecksum(const std::span<const Byte> &message) {
