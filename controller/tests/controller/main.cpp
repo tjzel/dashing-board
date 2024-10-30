@@ -1,29 +1,24 @@
-#include <CommunicatorMock.hpp>
+#include <Communicators.hpp>
 #include <DiagnosticCommands.hpp>
+#include <EcuMock.hpp>
 #include <RequestHandler.hpp>
 #include <iostream>
 
+// TODO: Move Simulator to a separate file.
+struct Simulator {
+  DataLink dataLink{};
+  StdioDebugCommunicator debugCommunicator{};
+  RequestHandlerDataLinkCommunicator requestHandlerCommunicator{dataLink};
+  EcuMockDataLinkCommunicator ecuCommunicator{dataLink};
+  EcuMock<EcuMockDataLinkCommunicator, StdioDebugCommunicator> ecuMock{ecuCommunicator, debugCommunicator};
+  RequestHandler<RequestHandlerDataLinkCommunicator, StdioDebugCommunicator> requestHandler{requestHandlerCommunicator,
+                                                                                            debugCommunicator};
+};
+
 int main() {
-  // TODO: The pattern to create an explicit mock here is silly, refactor it.
-  ControllerCommunicatorProxyMock comm;
+  Simulator simulator{};
 
-  Message message{0xc2, 0x33, 0xf1, {0x01, 0x0c}};
-
-  comm.write(std::vector<Byte>{message});
-
-  while (comm.available()) {
-    std::cout << std::hex << static_cast<int>(comm.read()) << " ";
-  }
-  std::cout << std::endl;
-
-  // handler.loadAvailability();
-  // handler.printAvailableCommands();
-  // handler.printAvailableForDataFrame();
-
-  // std::cout << static_cast<std::string>(handler.getDataFrame());
-
-  // handler.sniff();
-  // handler.sniff();
+  std::cout << simulator.requestHandler.get<DiagnosticCommands::ENGINE_RPM>() << std::endl;
 
   return 0;
 }

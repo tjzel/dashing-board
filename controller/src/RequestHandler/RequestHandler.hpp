@@ -26,10 +26,10 @@ public:
 private:
   template <DiagnosticCommands::CommandAvailability TCommand> void loadAvailabilityForCommand();
 
-  // TODO: Fix references here.
-  TCommunicator &_comm;
-  TDebugCommunicator &_debugComm;
+  TCommunicator &comm_;
+  TDebugCommunicator &debugComm_;
   // TODO: These conditions are far from ideal.
+  // TODO: Move initialization to the constructor.
   StateReader _stateReader{// [](Byte byte) { return (byte & REQUEST_HEADER_MODE_MASK) == 0xc0; },
                            [](const Byte) { return true; }, [](const Byte) { return true; },
                            // [](const Byte byte) { return byte == 0xf1; },
@@ -37,10 +37,10 @@ private:
                            // TODO: Fix this with a proper timestamp provider injection.
                            // millis,
                            []() { return 0; }};
-  std::map<CommandLiteral, bool> _availableCommands{{DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::value, true},
+  std::map<CommandLiteral, bool> availableCommands_{{DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::value, true},
                                                     {DiagnosticCommands::ENGINE_RPM::value, true},
                                                     {DiagnosticCommands::VEHICLE_SPEED::value, true}};
-  bool _communicationInitialized{false};
+  bool isCommunicationInitialized_{false};
 };
 
 /* #region Implementation */
@@ -51,11 +51,12 @@ auto RequestHandler<TCommunicator, TDebugCommunicator>::get() {
   const auto command = TCommand::value;
   const auto response = request(command);
   const auto result = Parser<TCommand>::parse(response);
+  return result;
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 void RequestHandler<TCommunicator, TDebugCommunicator>::loadAvailability() {
-  _debugComm.println("Loading x001f");
+  debugComm_.println("Loading x001f");
   loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>();
   // Something is off for the rest of those...
   // Probably asking ECU too fast.
@@ -71,39 +72,39 @@ void RequestHandler<TCommunicator, TDebugCommunicator>::loadAvailability() {
   // loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_A0_BF>();
   // _debugComm.println("Loading xc0df");
   // loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_C0_DF>();
-  _debugComm.println("Done loading availability");
+  debugComm_.println("Done loading availability");
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 void RequestHandler<TCommunicator, TDebugCommunicator>::printAvailableCommands() const {
-  _debugComm.println("Available commands:");
-  for (const auto &[key, isAvailable] : _availableCommands) {
-    _debugComm.println("    " + static_cast<std::string>(key) + " : " + (isAvailable ? "1" : "0"));
+  debugComm_.println("Available commands:");
+  for (const auto &[key, isAvailable] : availableCommands_) {
+    debugComm_.println("    " + static_cast<std::string>(key) + " : " + (isAvailable ? "1" : "0"));
   }
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 void RequestHandler<TCommunicator, TDebugCommunicator>::printAvailableForDataFrame() const {
-  _debugComm.println("Available for data frame:");
-  _debugComm.print("    Engine load: ");
-  _debugComm.println(isCommandAvailable(DiagnosticCommands::ENGINE_LOAD::value));
-  _debugComm.print("    Engine RPM: ");
-  _debugComm.println(isCommandAvailable(DiagnosticCommands::ENGINE_RPM::value));
-  _debugComm.print("    Vehicle speed: ");
-  _debugComm.println(isCommandAvailable(DiagnosticCommands::VEHICLE_SPEED::value));
-  _debugComm.print("    Throttle position: ");
-  _debugComm.println(isCommandAvailable(DiagnosticCommands::THROTTLE_POSITION::value));
-  _debugComm.print("    Uptime: ");
-  _debugComm.println(isCommandAvailable(DiagnosticCommands::UPTIME::value));
-  _debugComm.print("    Fuel level: ");
-  _debugComm.println(isCommandAvailable(DiagnosticCommands::FUEL_LEVEL::value));
-  _debugComm.print("    Absolute load: ");
-  _debugComm.println(isCommandAvailable(DiagnosticCommands::ABSOLUTE_LOAD::value));
-  _debugComm.print("    Relative throttle position: ");
-  _debugComm.println(isCommandAvailable(DiagnosticCommands::RELATIVE_THROTTLE_POSITION::value));
-  _debugComm.print("    Engine fuel rate: ");
-  _debugComm.println(isCommandAvailable(DiagnosticCommands::ENGINE_FUEL_RATE::value));
-  _debugComm.println();
+  debugComm_.println("Available for data frame:");
+  debugComm_.print("    Engine load: ");
+  debugComm_.println(isCommandAvailable(DiagnosticCommands::ENGINE_LOAD::value));
+  debugComm_.print("    Engine RPM: ");
+  debugComm_.println(isCommandAvailable(DiagnosticCommands::ENGINE_RPM::value));
+  debugComm_.print("    Vehicle speed: ");
+  debugComm_.println(isCommandAvailable(DiagnosticCommands::VEHICLE_SPEED::value));
+  debugComm_.print("    Throttle position: ");
+  debugComm_.println(isCommandAvailable(DiagnosticCommands::THROTTLE_POSITION::value));
+  debugComm_.print("    Uptime: ");
+  debugComm_.println(isCommandAvailable(DiagnosticCommands::UPTIME::value));
+  debugComm_.print("    Fuel level: ");
+  debugComm_.println(isCommandAvailable(DiagnosticCommands::FUEL_LEVEL::value));
+  debugComm_.print("    Absolute load: ");
+  debugComm_.println(isCommandAvailable(DiagnosticCommands::ABSOLUTE_LOAD::value));
+  debugComm_.print("    Relative throttle position: ");
+  debugComm_.println(isCommandAvailable(DiagnosticCommands::RELATIVE_THROTTLE_POSITION::value));
+  debugComm_.print("    Engine fuel rate: ");
+  debugComm_.println(isCommandAvailable(DiagnosticCommands::ENGINE_FUEL_RATE::value));
+  debugComm_.println();
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
@@ -115,31 +116,31 @@ DataFrame RequestHandler<TCommunicator, TDebugCommunicator>::getDataFrame() {
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 void RequestHandler<TCommunicator, TDebugCommunicator>::sniff() {
-  while (!_stateReader.feed(_comm.read())) {
+  while (!_stateReader.feed(comm_.read())) {
     ;
   }
   auto message = _stateReader.getMessage();
-  printMessage(message, _debugComm);
+  printMessage(message, debugComm_);
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 bool RequestHandler<TCommunicator, TDebugCommunicator>::initializeCommunication() {
-  if (_communicationInitialized) {
+  if (isCommunicationInitialized_) {
     return true;
   }
-  _comm.fastInit();
-  _debugComm.println("Fast init done");
+  comm_.fastInit();
+  debugComm_.println("Fast init done");
   // TODO: Fix magic numbers.
   Message message{0xc1, 0x33, 0xf1, {0x81}};
-  _comm.write(std::vector<Byte>{message});
+  comm_.write(std::vector<Byte>{message});
   const auto maxAttempts = 32;
   int attempts = 0;
-  while (!_stateReader.feed(_comm.read()) && attempts < maxAttempts) {
+  while (!_stateReader.feed(comm_.read()) && attempts < maxAttempts) {
     attempts++;
   };
 
   if (attempts >= maxAttempts) {
-    _debugComm.println("Communication initialization failed");
+    debugComm_.println("Communication initialization failed");
     return false;
   };
   // while (!_stateReader.feed(_comm.read())) {
@@ -153,44 +154,44 @@ bool RequestHandler<TCommunicator, TDebugCommunicator>::initializeCommunication(
   //   Checksum: BE
   auto response = _stateReader.getMessage();
   if (response.dataSize() < 1 || response.data[0] != 0xc1) {
-    _debugComm.println("Invalid init response received:");
-    printMessage(response, _debugComm);
+    debugComm_.println("Invalid init response received:");
+    printMessage(response, debugComm_);
     return false;
   }
-  _debugComm.println("Communication initialized");
-  _communicationInitialized = true;
+  debugComm_.println("Communication initialized");
+  isCommunicationInitialized_ = true;
 
   /* #region Timing */
   // TODO: Remove it.
   // Temporary. Wait for the ECU to be ready.
   // delay(50);
 
-  _debugComm.println("Requesting timing data");
+  debugComm_.println("Requesting timing data");
 
   Message timingCurrentRequest{0xc2, 0x33, 0xf1, {0x02}};
 
-  _comm.write(std::vector<Byte>{timingCurrentRequest});
+  comm_.write(std::vector<Byte>{timingCurrentRequest});
 
-  while (!_stateReader.feed(_comm.read())) {
+  while (!_stateReader.feed(comm_.read())) {
     ;
   }
   auto timingCurrentResponse = _stateReader.getMessage();
 
-  _debugComm.println("Timing data:");
+  debugComm_.println("Timing data:");
 
-  printMessage(timingCurrentResponse, _debugComm);
+  printMessage(timingCurrentResponse, debugComm_);
 
   // delay(50);
 
   Message timingLimitsRequest{0xc2, 0x33, 0xf1, {0x00}};
 
-  _comm.write(std::vector<Byte>{timingLimitsRequest});
+  comm_.write(std::vector<Byte>{timingLimitsRequest});
 
-  while (!_stateReader.feed(_comm.read())) {
+  while (!_stateReader.feed(comm_.read())) {
     ;
   }
   auto timingLimitsResponse = _stateReader.getMessage();
-  printMessage(timingLimitsResponse, _debugComm);
+  printMessage(timingLimitsResponse, debugComm_);
 
   // OG Car response:
   // Format: 83
@@ -215,34 +216,34 @@ template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 std::vector<Byte> RequestHandler<TCommunicator, TDebugCommunicator>::request(CommandLiteral command) {
   // TODO: Fix magic numbers.
   Message message{0xc2, 0x33, 0xf1, {command.mode, command.pid}};
-  _comm.write(std::vector<Byte>{message});
+  comm_.write(std::vector<Byte>{message});
 
-  _debugComm.println("Request sent:");
-  printMessage(message, _debugComm);
+  debugComm_.println("Request sent:");
+  printMessage(message, debugComm_);
 
-  while (!_stateReader.feed(_comm.read())) {
+  while (!_stateReader.feed(comm_.read())) {
     ;
   }
   auto response = _stateReader.getMessage();
-  _debugComm.println("Response received:");
-  printMessage(response, _debugComm);
+  debugComm_.println("Response received:");
+  printMessage(response, debugComm_);
 
   return response.data;
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 bool RequestHandler<TCommunicator, TDebugCommunicator>::isCommandAvailable(CommandLiteral command) const {
-  return _availableCommands.contains(command);
+  return availableCommands_.contains(command);
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 bool RequestHandler<TCommunicator, TDebugCommunicator>::isCommunicationInitialized() const {
-  return _communicationInitialized;
+  return isCommunicationInitialized_;
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 RequestHandler<TCommunicator, TDebugCommunicator>::RequestHandler(TCommunicator &comm, TDebugCommunicator &debugComm)
-    : _comm(comm), _debugComm(debugComm) {}
+    : comm_(comm), debugComm_(debugComm) {}
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 template <DiagnosticCommands::CommandAvailability TCommand>
@@ -254,7 +255,7 @@ void RequestHandler<TCommunicator, TDebugCommunicator>::loadAvailabilityForComma
   const auto availability = get<TCommand>();
 
   for (const auto [key, value] : availability) {
-    _availableCommands[key] = value;
+    availableCommands_[key] = value;
   }
 }
 

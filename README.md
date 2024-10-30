@@ -2,7 +2,7 @@
 
 ## Installation
 
-The project uses llvm19 toolchain for offline compilation. Make sure you have it installed.
+The project uses llvm (at least 18 is recommended) toolchain for offline compilation. Make sure you have it installed.
 
 ### Configuring CMake (you only need to do it once)
 
@@ -11,13 +11,15 @@ The project uses llvm19 toolchain for offline compilation. Make sure you have it
 ```shell
   export CC=your/path/to/clang
   export CXX=your/path/to/clang++
-  cmake .
+  mkdir build
+  cd build
+  cmake ..
 ```
 
 ### Compiling
 
-Doesn't have to be done in root.
-
 ```shell
   make
 ```
+
+The binaries will be outputted to `/bin` directory.

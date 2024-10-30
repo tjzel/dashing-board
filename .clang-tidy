@@ -1,18 +1,19 @@
 Checks:
-  - bugprone-*,
-  - -bugprone-easily-swappable-parameters,
-  - clang-analyzer-*,
-  - concurrency-*,
-  - cppcoreguidelines-*,
-  - google-*,
-  - -google-readability-todo,
-  - llvm-*,
-  - misc-*,
-  - -misc-non-private-member-variables-in-classes,
-  - modernize-*,
-  - -modernize-use-trailing-return-type,
-  - performance-*,
-  - portability-*,
-  - readability-*"
-# CheckOptions:
+  - bugprone-*
+  - -bugprone-easily-swappable-parameters
+  - clang-analyzer-*
+  - concurrency-*
+  - cppcoreguidelines-*
+  - google-*
+  - -google-readability-todo
+  - llvm-*
+  - misc-*
+  - -misc-non-private-member-variables-in-classes
+  - modernize-*
+  - -modernize-use-trailing-return-type
+  - performance-*
+  - portability-*
+  - readability-*
+  - -cppcoreguidelines-avoid-const-or-ref-data-members
+  - -performance-avoid-endl
 FormatStyle: llvm

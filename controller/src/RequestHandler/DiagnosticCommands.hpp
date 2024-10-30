@@ -6,18 +6,18 @@
 #include <sstream>
 #include <string>
 
-typedef uint8_t Byte;
+using Byte = uint8_t;
 
 struct CommandLiteral {
   auto operator<=>(const CommandLiteral &) const = default;
 
-  operator std::string() const {
-    std::stringstream ss;
+  explicit operator std::string() const {
+    std::stringstream stream;
 
-    ss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(mode);
-    ss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(pid);
+    stream << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(mode);
+    stream << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(pid);
 
-    return "0x" + ss.str();
+    return "0x" + stream.str();
   }
 
   const Byte mode;
@@ -27,7 +27,7 @@ struct CommandLiteral {
 namespace ParsingFormulas {
 template <const Byte TByteCount, typename TValueType> struct Identity {
   constexpr static Byte byteCount = TByteCount;
-  typedef TValueType ValueType;
+  using ValueType = TValueType;
 };
 
 template <const Byte TByteCount, typename TValueType, const int TNominator, const int TDenominator>
@@ -54,7 +54,7 @@ template <const Byte TMode, const Byte TPid, typename TParsingFormula>
   requires std::is_base_of_v<ParsingFormulas::Identity<TParsingFormula::byteCount, typename TParsingFormula::ValueType>,
                              TParsingFormula>
 struct FullCommandWithResponse : FullCommand<TMode, TPid> {
-  typedef TParsingFormula ParsingFormula;
+  using ParsingFormula = TParsingFormula;
 };
 
 template <const Byte TMode, const Byte TPid>

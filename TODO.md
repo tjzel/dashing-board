@@ -1,2 +1,1 @@
-1. Refactor the code to be able to use both RequestHandler and EcuMock in testing.
-2. Rename RequestHandler to Controller.
+1. Event driven read-write for both RequestHandler and ECU.

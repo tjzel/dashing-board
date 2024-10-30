@@ -6,11 +6,11 @@
 #include <vector>
 
 struct Message {
-  static Byte calculateChecksum(const Byte format, const Byte target, const Byte source, const std::span<const Byte> data);
+  static Byte calculateChecksum(Byte format, Byte target, Byte source, std::span<const Byte> data);
   [[nodiscard]] Byte dataSize() const;
   [[nodiscard]] bool isOBD2Message() const;
   [[nodiscard]] bool isInitMessage() const;
-  Message(const Byte format, const Byte target, const Byte source, std::vector<Byte> data);
+  Message(Byte format, Byte target, Byte source, std::vector<Byte> data);
   explicit operator std::vector<Byte>() const;
 
   static constexpr Byte MINIMAL_MESSAGE_SIZE = 4;
@@ -29,7 +29,7 @@ struct OBD2Message {
   [[nodiscard]] Byte mode() const;
   [[nodiscard]] Byte pid() const;
   [[nodiscard]] Byte obd2DataSize() const;
-  [[nodiscard]] const std::span<const Byte> obd2Data() const;
+  [[nodiscard]] std::span<const Byte> obd2Data() const;
   [[nodiscard]] CommandLiteral command() const;
   explicit OBD2Message(Message &message);
 

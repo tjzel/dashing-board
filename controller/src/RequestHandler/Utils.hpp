@@ -1,15 +1,15 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#include "ICommunicator.hpp"
-#include "Message.hpp"
 #include <DiagnosticCommands.hpp>
+#include <ICommunicator.hpp>
+#include <Message.hpp>
 #include <span>
 
-Byte calculateChecksum(const Byte header, const Byte target, const Byte source, const std::span<const Byte> &data);
+Byte calculateChecksum(Byte header, Byte target, Byte source, const std::span<const Byte> &data);
 Byte calculateChecksum(const std::span<const Byte> &message);
 
-bool isMessageValid(const std::span<const Byte> &message, const Byte checksum);
+bool isMessageValid(const std::span<const Byte> &message, Byte checksum);
 
 template <IDebugCommunicator TDebugCommunicator> void printMessage(const Message &message, TDebugCommunicator &debugComm) {
   debugComm.print("    Format: ");

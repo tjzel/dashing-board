@@ -2,7 +2,11 @@
 .DS_Store
 
 # VSCode
-.vscode
+.vscode/*
+
+# Debugger
+!.vscode/launch.json
+!.vscode/tasks.json
 
 # Simulator
 .venv
@@ -16,10 +20,6 @@ compile_commands.json
 bin
 
 # CMake
-CMakeFiles
-CMakeCache.txt
-Makefile
-cmake_install.cmake
 build
 
 # PlatformIO

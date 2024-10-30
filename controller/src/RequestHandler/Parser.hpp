@@ -5,17 +5,15 @@
 #include <cstddef>
 #include <span>
 #include <stdexcept>
-
-#include <iostream>
 #include <vector>
 
 template <DiagnosticCommands::Command TCommand> struct Parser {
-  static auto parse(std::span<const Byte>) -> typename TCommand::ParsingFormula::ValueType {
+  static auto parse(std::span<const Byte> /*message*/) -> typename TCommand::ParsingFormula::ValueType {
     throw std::runtime_error("No parser found for command " + std::to_string(TCommand::mode) + ":" +
                              std::to_string(TCommand::pid));
   }
 
-  static auto reverseParse(const typename TCommand::ParsingFormula::ValueType) -> std::vector<Byte> {
+  static auto reverseParse(const typename TCommand::ParsingFormula::ValueType /*result*/) -> std::vector<Byte> {
     throw std::runtime_error("No reverse parser found for command " + std::to_string(TCommand::mode) + ":" +
                              std::to_string(TCommand::pid));
   }
@@ -35,7 +33,7 @@ struct Parser<TCommand> {
     auto byteOffset = 0;
     for (const auto readByte : data) {
       for (int i = 0; i < 8; i++) {
-        const bool bit = readByte & (1 << (7 - i));
+        const bool bit = (readByte & (1 << (7 - i))) != 0;
         if (!bit) {
           continue;
         }
@@ -48,7 +46,7 @@ struct Parser<TCommand> {
     return availability;
   }
 
-  static auto reverseParse(const typename TCommand::ParsingFormula::ValueType) -> const std::vector<Byte> {
+  static auto reverseParse(const typename TCommand::ParsingFormula::ValueType /*result*/) -> std::vector<Byte> {
     throw std::runtime_error("Not implemented");
   }
 };
@@ -73,7 +71,7 @@ struct Parser<TCommand> {
     return result;
   }
 
-  static auto reverseParse(typename TCommand::ParsingFormula::ValueType result) -> const std::vector<Byte> {
+  static auto reverseParse(typename TCommand::ParsingFormula::ValueType result) -> std::vector<Byte> {
     std::vector<Byte> data(TCommand::ParsingFormula::byteCount);
     for (size_t i = 0; i < data.size(); i++) {
       data[i] = result % 256;

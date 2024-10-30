@@ -7,11 +7,11 @@ public:
   DataProvider(int initialValue, int step, int sign, int bottomThreshold, int topThreshold);
 
 private:
-  int _value;
-  int _step;
-  int _sign;
-  int _bottomThreshold;
-  int _topThreshold;
+  int value_;
+  int step_;
+  int sign_;
+  int bottomThreshold_;
+  int topThreshold_;
 };
 
 #endif // DATA_PROVIDER_HPP

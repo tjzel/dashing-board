@@ -1,9 +1,10 @@
 #include <Message.hpp>
 #include <Utils.hpp>
+#include <algorithm>
 
 Byte Message::calculateChecksum(const Byte format, const Byte target, const Byte source, const std::span<const Byte> data) {
   std::vector<Byte> rawMessage{format, target, source};
-  std::copy(data.begin(), data.end(), std::back_inserter(rawMessage));
+  std::ranges::copy(data, std::back_inserter(rawMessage));
   const auto checksum = ::calculateChecksum(rawMessage);
   return checksum;
 }
@@ -29,7 +30,7 @@ Message::operator std::vector<Byte>() const {
   message[0] = format;
   message[1] = target;
   message[2] = source;
-  std::copy(data.begin(), data.end(), message.begin() + 3);
+  std::ranges::copy(data, message.begin() + 3);
   message.back() = checksum;
   return message;
 }
@@ -46,7 +47,7 @@ Byte OBD2Message::pid() const { return message.data[1]; }
 
 Byte OBD2Message::obd2DataSize() const { return message.dataSize(); }
 
-const std::span<const Byte> OBD2Message::obd2Data() const { return std::span(message.data.begin() + 2, obd2DataSize()); }
+std::span<const Byte> OBD2Message::obd2Data() const { return std::span(message.data.begin() + 2, obd2DataSize()); }
 
 OBD2Message::OBD2Message(Message &message) : message(message) {}
 
