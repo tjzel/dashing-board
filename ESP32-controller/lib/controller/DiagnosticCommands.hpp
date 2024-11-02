@@ -1,1 +1,1 @@
-../../../controller/src/DiagnosticCommands.hpp
+../../../controller/src/Obd2Protocol/DiagnosticCommands.hpp

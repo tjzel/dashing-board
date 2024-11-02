@@ -51,4 +51,4 @@ std::span<const Byte> OBD2Message::obd2Data() const { return std::span(message.d
 
 OBD2Message::OBD2Message(Message &message) : message(message) {}
 
-CommandLiteral OBD2Message::command() const { return CommandLiteral{mode(), pid()}; }
+CommandLiteral OBD2Message::command() const { return CommandLiteral{.mode = mode(), .pid = pid()}; }

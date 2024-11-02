@@ -1,1 +1,1 @@
-../../../controller/src/ICommunicator.hpp
+../../../controller/src/Communication/ICommunicator.hpp

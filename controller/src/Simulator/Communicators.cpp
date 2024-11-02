@@ -29,8 +29,8 @@ void EcuMockDataLinkCommunicator::write(Byte byte) { dataLink_.ecuWrite(byte); }
 
 void EcuMockDataLinkCommunicator::write(const std::vector<Byte> &message) { dataLink_.ecuWrite(message); }
 
-void EcuMockDataLinkCommunicator::setOnNewDataForEcu(std::function<void()> onNewDataForEcu) {
-  dataLink_.setOnNewDataForEcu(std::move(onNewDataForEcu));
+void EcuMockDataLinkCommunicator::setOnNewData(std::function<void()> onNewData) {
+  dataLink_.setOnNewDataForEcu(std::move(onNewData));
 }
 
 EcuMockDataLinkCommunicator::EcuMockDataLinkCommunicator(DataLink &dataLinkMock) : dataLink_(dataLinkMock) {}

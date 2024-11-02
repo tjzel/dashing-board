@@ -18,6 +18,7 @@ public:
   void write(const std::vector<Byte> &message);
 
   void fastInit();
+  void setOnNewData(std::function<void()> onNewData);
 
   explicit RequestHandlerDataLinkCommunicator(DataLink &dataLink);
 
@@ -37,7 +38,7 @@ public:
 
   void fastInit();
 
-  void setOnNewDataForEcu(std::function<void()> onNewDataForEcu);
+  void setOnNewData(std::function<void()> onNewData);
 
   explicit EcuMockDataLinkCommunicator(DataLink &dataLinkMock);
 

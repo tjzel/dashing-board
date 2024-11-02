@@ -13,14 +13,15 @@ static constexpr Byte REQUEST_HEADER_MODE_MASK = 0xf0;
 static constexpr Byte OBD2_MIN_HEADER_SIZE = 0x02;
 
 template <class TCommunicator>
-concept ICommunicator =
-    requires(TCommunicator comm, const Byte dataByte, const std::vector<Byte> message, const std::string str) {
-      { comm.read() } -> std::same_as<int>;
-      { comm.write(dataByte) } -> std::same_as<void>;
-      { comm.write(message) } -> std::same_as<void>;
-      { comm.available() } -> std::same_as<bool>;
-      { comm.fastInit() } -> std::same_as<void>;
-    };
+concept ICommunicator = requires(TCommunicator comm, const Byte dataByte, const std::vector<Byte> message,
+                                 const std::string str, std::function<void()> onNewData) {
+  { comm.read() } -> std::same_as<int>;
+  { comm.write(dataByte) } -> std::same_as<void>;
+  { comm.write(message) } -> std::same_as<void>;
+  { comm.available() } -> std::same_as<bool>;
+  { comm.fastInit() } -> std::same_as<void>;
+  { comm.setOnNewData(onNewData) } -> std::same_as<void>;
+};
 
 template <class TDebugCommunicator>
 concept IDebugCommunicator =

@@ -1,7 +1,7 @@
 project(controller)
 add_library(controller SHARED)
 
-target_include_directories(controller PUBLIC src src/RequestHandler src/Simulator src/Communication)
+target_include_directories(controller PUBLIC src src/RequestHandler src/Simulator src/Communication src/Obd2Protocol)
 file(GLOB_RECURSE SOURCES src/**/*.cpp)
 target_sources(controller PRIVATE ${SOURCES})
 

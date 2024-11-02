@@ -1,7 +1,7 @@
 #ifndef ECU_RESPONDER_HPP
 #define ECU_RESPONDER_HPP
 
-#include "DataProvider.hpp"
+#include <DataProvider.hpp>
 #include <DiagnosticCommands.hpp>
 #include <Message.hpp>
 

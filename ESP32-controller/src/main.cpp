@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <DiagnosticCommands.hpp>
-#include <EcuMock.hpp>
 #include <RequestHandler.hpp>
 #include <SerialCommunicator.hpp>
 

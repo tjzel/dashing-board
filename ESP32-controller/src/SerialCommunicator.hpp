@@ -15,6 +15,7 @@ public:
   void write(const std::vector<Byte> &message);
   void write(Byte byte);
   void fastInit();
+  void setOnNewData(std::function<void()> onNewData);
 
   explicit SerialCommunicator(const uint serialNumber, const gpio_num_t, const gpio_num_t tx);
 

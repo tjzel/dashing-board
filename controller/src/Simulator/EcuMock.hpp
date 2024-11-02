@@ -41,7 +41,7 @@ void EcuMock<TCommunicator, TDebugCommunicator>::inputArrivedHandler() {
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 EcuMock<TCommunicator, TDebugCommunicator>::EcuMock(TCommunicator &comm, TDebugCommunicator &debugComm)
     : comm_(comm), debugComm_(debugComm) {
-  comm_.setOnNewDataForEcu([&]() { inputArrivedHandler(); });
+  comm_.setOnNewData([&]() { inputArrivedHandler(); });
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>

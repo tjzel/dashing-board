@@ -41,6 +41,8 @@ void SerialCommunicator::fastInit() {
   _serial.begin(_baudRate, SERIAL_8N1, _rx, _tx);
 };
 
+void SerialCommunicator::setOnNewData(std::function<void()> /*onNewData*/) {}
+
 SerialCommunicator::SerialCommunicator(const uint serialNumber, const gpio_num_t rx, const gpio_num_t tx)
     : _serialNumber(serialNumber), _rx(rx), _tx(tx), _serial(HardwareSerial(serialNumber)) {}
 
