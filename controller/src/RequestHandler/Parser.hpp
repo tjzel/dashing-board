@@ -85,10 +85,15 @@ struct Parser<TCommand> {
 static_assert(std::is_same_v<DiagnosticCommands::ENGINE_RPM::ParsingFormula, ParsingFormulas::MultiplyBy<2, int, 1, 4>>);
 
 template <DiagnosticCommands::Command TCommand>
-  requires std::is_base_of_v<
-      typename TCommand::ParsingFormula,
-      ParsingFormulas::MultiplyBy<TCommand::ParsingFormula::byteCount, typename TCommand::ParsingFormula::ValueType,
-                                  TCommand::ParsingFormula::Nominator, TCommand::ParsingFormula::Denominator>>
+// TODO: fix for percentage formulas
+  requires std::is_same_v<
+               typename TCommand::ParsingFormula,
+               ParsingFormulas::MultiplyBy<TCommand::ParsingFormula::byteCount, typename TCommand::ParsingFormula::ValueType,
+                                           TCommand::ParsingFormula::Nominator, TCommand::ParsingFormula::Denominator>> ||
+           std::is_base_of_v<
+               typename TCommand::ParsingFormula,
+               ParsingFormulas::MultiplyBy<TCommand::ParsingFormula::byteCount, typename TCommand::ParsingFormula::ValueType,
+                                           TCommand::ParsingFormula::Nominator, TCommand::ParsingFormula::Denominator>>
 struct Parser<TCommand> {
   static auto parse(const std::span<const Byte> message) -> typename TCommand::ParsingFormula::ValueType {
     const auto data = message.subspan(2);

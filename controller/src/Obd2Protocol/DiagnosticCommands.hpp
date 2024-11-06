@@ -1,6 +1,7 @@
 
 #ifndef DIAGNOSTIC_COMMANDS_HPP
 #define DIAGNOSTIC_COMMANDS_HPP
+#include <cstdint>
 #include <iomanip>
 #include <map>
 #include <sstream>
@@ -14,8 +15,8 @@ struct CommandLiteral {
   explicit operator std::string() const {
     std::stringstream stream;
 
-    stream << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(mode);
-    stream << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(pid);
+    stream << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(mode) << std::dec;
+    stream << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(pid) << std::dec;
 
     return "0x" + stream.str();
   }
@@ -85,7 +86,7 @@ struct FUEL_LEVEL : internal::CommandWithFormula<0x01, 0x2F, ParsingFormulas::Pe
 struct COMMAND_AVAILABILITY_40_5F : internal::PrefixedCommandAvailability<0x01, 0x40> {};
 struct ABSOLUTE_LOAD : internal::CommandWithFormula<0x01, 0x43, ParsingFormulas::Percentage<2>> {};
 struct RELATIVE_THROTTLE_POSITION : internal::CommandWithFormula<0x01, 0x45, ParsingFormulas::Percentage<1>> {};
-struct ENGINE_FUEL_RATE : internal::CommandWithFormula<0x01, 0x5E, ParsingFormulas::MultiplyBy<2, int, 1, 20>> {};
+struct ENGINE_FUEL_RATE : internal::CommandWithFormula<0x01, 0x5E, ParsingFormulas::MultiplyBy<2, double, 1, 20>> {};
 
 struct COMMAND_AVAILABILITY_60_7F : internal::PrefixedCommandAvailability<0x01, 0x60> {};
 

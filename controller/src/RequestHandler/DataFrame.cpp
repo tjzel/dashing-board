@@ -1,12 +1,6 @@
 #include <DataFrame.hpp>
 #include <sstream>
 
-DataFrame::DataFrame(double engineLoad, int engineRPM, int vehicleSpeed, double throttlePosition, int uptime, double fuelLevel,
-                     double absoluteLoad, double relativeThrottlePosition, double engineFuelRate)
-    : engineLoad(engineLoad), engineRPM(engineRPM), vehicleSpeed(vehicleSpeed), throttlePosition(throttlePosition),
-      uptime(uptime), fuelLevel(fuelLevel), absoluteLoad(absoluteLoad), relativeThrottlePosition(relativeThrottlePosition),
-      engineFuelRate(engineFuelRate) {}
-
 DataFrame::operator std::string() const {
   std::stringstream stream;
   stream << "Data frame:" << "\n";

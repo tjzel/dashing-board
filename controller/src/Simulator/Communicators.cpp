@@ -40,13 +40,13 @@ EcuMockDataLinkCommunicator::EcuMockDataLinkCommunicator(DataLink &dataLinkMock)
 /* #region StdioDebugCommunicator */
 
 void StdioDebugCommunicator::print(const Byte byte) {
-  std::cout << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(byte);
+  std::cout << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(byte) << std::dec;
 }
 
 void StdioDebugCommunicator::print(const std::string &str) { std::cout << str; }
 
 void StdioDebugCommunicator::println(const Byte byte) {
-  std::cout << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(byte);
+  print(byte);
   println();
 }
 

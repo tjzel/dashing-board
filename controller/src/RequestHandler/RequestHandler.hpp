@@ -109,9 +109,15 @@ void RequestHandler<TCommunicator, TDebugCommunicator>::printAvailableForDataFra
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 DataFrame RequestHandler<TCommunicator, TDebugCommunicator>::getDataFrame() {
-  return DataFrame{-1, get<DiagnosticCommands::ENGINE_RPM>(),
-                   // get<DiagnosticCommands::VEHICLE_SPEED>()
-                   -1, -1, -1, -1, -1, -1, -1};
+  return DataFrame{.engineLoad = get<DiagnosticCommands::ENGINE_LOAD>(),
+                   .engineRPM = get<DiagnosticCommands::ENGINE_RPM>(),
+                   .vehicleSpeed = get<DiagnosticCommands::VEHICLE_SPEED>(),
+                   .throttlePosition = get<DiagnosticCommands::THROTTLE_POSITION>(),
+                   .uptime = get<DiagnosticCommands::UPTIME>(),
+                   .fuelLevel = get<DiagnosticCommands::FUEL_LEVEL>(),
+                   .absoluteLoad = get<DiagnosticCommands::ABSOLUTE_LOAD>(),
+                   .relativeThrottlePosition = get<DiagnosticCommands::RELATIVE_THROTTLE_POSITION>(),
+                   .engineFuelRate = get<DiagnosticCommands::ENGINE_FUEL_RATE>()};
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
@@ -218,15 +224,15 @@ std::vector<Byte> RequestHandler<TCommunicator, TDebugCommunicator>::request(Com
   Message message{0xc2, 0x33, 0xf1, {command.mode, command.pid}};
   comm_.write(std::vector<Byte>{message});
 
-  debugComm_.println("Request sent:");
-  printMessage(message, debugComm_);
+  // debugComm_.println("Request sent:");
+  // printMessage(message, debugComm_);
 
   while (!_stateReader.feed(comm_.read())) {
     ;
   }
   auto response = _stateReader.getMessage();
-  debugComm_.println("Response received:");
-  printMessage(response, debugComm_);
+  // debugComm_.println("Response received:");
+  // printMessage(response, debugComm_);
 
   return response.data;
 }

@@ -2,6 +2,7 @@
 #define ICOMMUNICATOR_HPP
 #include <DiagnosticCommands.hpp>
 #include <concepts>
+#include <functional>
 #include <vector>
 
 static constexpr Byte ECU_ADDRESS = 0x33;

@@ -1,4 +1,5 @@
 CompileFlags:
+  CompilationDatabase: build
   Add:
     - -xc++
     - -std=c++20

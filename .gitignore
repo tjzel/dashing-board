@@ -24,3 +24,6 @@ build
 
 # PlatformIO
 .pio
+
+# gtest
+Testing

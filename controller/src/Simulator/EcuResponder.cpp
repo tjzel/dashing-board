@@ -3,6 +3,7 @@
 #include "Parser.hpp"
 #include <EcuResponder.hpp>
 #include <cassert>
+#include <iostream>
 
 EcuInternalResponse EcuResponder::request(Message &message) {
   if (message.isInitMessage()) {
@@ -47,7 +48,9 @@ template <> Message EcuResponder::respondTo<DiagnosticCommands::ENGINE_RPM>(OBD2
   const Byte mode = DiagnosticCommands::ENGINE_RPM::mode + 0x40;
   const Byte pid = DiagnosticCommands::ENGINE_RPM::pid;
   assert(pid == message.pid());
-  const auto data = Parser<DiagnosticCommands::ENGINE_RPM>::reverseParse(rpmProvider_.get());
+  auto rpm = rpmProvider_.get();
+  // std::cout << "wartosc: " << rpm << std::endl;
+  const auto data = Parser<DiagnosticCommands::ENGINE_RPM>::reverseParse(rpm);
   assert(data.size() == DiagnosticCommands::ENGINE_RPM::ParsingFormula::byteCount);
   return createResponse(target, mode, pid, data);
 }

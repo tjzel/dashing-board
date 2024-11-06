@@ -28,7 +28,7 @@ private:
                            [](int byte) { return byte == ECU_ADDRESS; }, [](int) { return true; }, []() { return 0; }};
   EcuResponder ecuResponder_{};
 };
-/* #endregion Definition */
+/* #endregion Declaration */
 /* #region Implementation */
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
@@ -51,7 +51,7 @@ void EcuMock<TCommunicator, TDebugCommunicator>::handleInput() {
     return;
   };
   auto message = stateReader_.getMessage();
-  printMessage(message, debugComm_);
+  // printMessage(message, debugComm_);
 
   // TODO: We drop non-OBD2 messages, but we should handle at least init protocol.
   if (message.isOBD2Message()) {
