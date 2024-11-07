@@ -83,17 +83,36 @@ struct Parser<TCommand> {
 
 // Test
 static_assert(std::is_same_v<DiagnosticCommands::ENGINE_RPM::ParsingFormula, ParsingFormulas::MultiplyBy<2, int, 1, 4>>);
+static_assert(!std::is_same_v<DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula,
+                              ParsingFormulas::MultiplyBy<DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::byteCount,
+                                                          DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::ValueType,
+                                                          DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::Nominator,
+                                                          DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::Denominator>>);
+static_assert(!std::is_same_v<DiagnosticCommands::FUEL_LEVEL::ParsingFormula,
+                              ParsingFormulas::MultiplyBy<DiagnosticCommands::FUEL_LEVEL::ParsingFormula::byteCount,
+                                                          DiagnosticCommands::FUEL_LEVEL::ParsingFormula::ValueType,
+                                                          DiagnosticCommands::FUEL_LEVEL::ParsingFormula::Nominator,
+                                                          DiagnosticCommands::FUEL_LEVEL::ParsingFormula::Denominator>>);
+static_assert(std::is_base_of_v<ParsingFormulas::MultiplyBy<DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::byteCount,
+                                                            DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::ValueType,
+                                                            DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::Nominator,
+                                                            DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::Denominator>,
+                                DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula>);
+static_assert(std::is_base_of_v<ParsingFormulas::MultiplyBy<DiagnosticCommands::FUEL_LEVEL::ParsingFormula::byteCount,
+                                                            DiagnosticCommands::FUEL_LEVEL::ParsingFormula::ValueType,
+                                                            DiagnosticCommands::FUEL_LEVEL::ParsingFormula::Nominator,
+                                                            DiagnosticCommands::FUEL_LEVEL::ParsingFormula::Denominator>,
+                                DiagnosticCommands::FUEL_LEVEL::ParsingFormula>);
 
 template <DiagnosticCommands::Command TCommand>
-// TODO: fix for percentage formulas
   requires std::is_same_v<
                typename TCommand::ParsingFormula,
                ParsingFormulas::MultiplyBy<TCommand::ParsingFormula::byteCount, typename TCommand::ParsingFormula::ValueType,
                                            TCommand::ParsingFormula::Nominator, TCommand::ParsingFormula::Denominator>> ||
            std::is_base_of_v<
-               typename TCommand::ParsingFormula,
                ParsingFormulas::MultiplyBy<TCommand::ParsingFormula::byteCount, typename TCommand::ParsingFormula::ValueType,
-                                           TCommand::ParsingFormula::Nominator, TCommand::ParsingFormula::Denominator>>
+                                           TCommand::ParsingFormula::Nominator, TCommand::ParsingFormula::Denominator>,
+               typename TCommand::ParsingFormula>
 struct Parser<TCommand> {
   static auto parse(const std::span<const Byte> message) -> typename TCommand::ParsingFormula::ValueType {
     const auto data = message.subspan(2);
