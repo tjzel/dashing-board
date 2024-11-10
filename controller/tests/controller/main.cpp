@@ -49,7 +49,7 @@ TEST(RequestHandlerDataLinkCommunicatorTest, MethodsTest) {
   // ASSERT_NO_THROW(simulator.requestHandlerCommunicator.setOnNewData([]() {}));
 }
 
-TEST(RequesHandlerTest, MethodsTest) {
+TEST(RequestHandlerTest, MethodsTest) {
   Simulator simulator{};
 
   ASSERT_NO_THROW(simulator.requestHandler.loadAvailability());

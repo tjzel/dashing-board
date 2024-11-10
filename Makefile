@@ -3,3 +3,7 @@ all:
 
 clean:
 	@$(MAKE) -C build clean
+
+test:
+	@$(MAKE) -C build 
+	(cd build/build/tests/controller && ctest)
