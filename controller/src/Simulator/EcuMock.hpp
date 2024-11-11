@@ -23,9 +23,12 @@ private:
 
   TCommunicator &comm_;
   TDebugCommunicator &debugComm_;
-  StateReader stateReader_{// TODO: Fix magic number.
-                           [](int byte) { return (byte & REQUEST_HEADER_MODE_MASK) == 0xc0; },
-                           [](int byte) { return byte == ECU_ADDRESS; }, [](int) { return true; }, []() { return 0; }};
+  StateReader stateReader_{
+      {// TODO: Fix magic number.
+       .isHeaderValid = [](int byte) { return (byte & REQUEST_HEADER_MODE_MASK) == 0xc0; },
+       .isTargetValid = [](int byte) { return byte == ECU_ADDRESS; },
+       .isSourceValid = [](int) { return true; },
+       .getTimestamp = []() { return 0; }}};
   EcuResponder ecuResponder_{};
 };
 /* #endregion Declaration */
@@ -39,7 +42,8 @@ void EcuMock<TCommunicator, TDebugCommunicator>::inputArrivedHandler() {
 };
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
-EcuMock<TCommunicator, TDebugCommunicator>::EcuMock(TCommunicator &comm, TDebugCommunicator &debugComm)
+EcuMock<TCommunicator, TDebugCommunicator>::EcuMock(TCommunicator &comm,
+                                                    TDebugCommunicator &debugComm)
     : comm_(comm), debugComm_(debugComm) {
   comm_.setOnNewData([&]() { inputArrivedHandler(); });
 }

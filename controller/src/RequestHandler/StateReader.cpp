@@ -14,18 +14,18 @@ bool StateReader::feed(const int byte) {
   switch (state_) {
   case WAITING_FOR_HEADER:
     // TODO: Add own wrappers with default behavior.
-    if (!isHeaderValid_(byte) || !(byte & 0xC0)) {
+    if (!validators_.isHeaderValid(byte) || !(byte & 0xC0)) {
       reset();
       return false;
     }
     header_ = byte;
     dataSize_ = header_ & Message::REQUEST_HEADER_SIZE_MASK;
     state_ = WAITING_FOR_TARGET;
-    timestamp_ = getTimestamp_();
+    timestamp_ = validators_.getTimestamp();
     break;
 
   case WAITING_FOR_TARGET:
-    if (getTimestamp_() - timestamp_ > DropoutTime) {
+    if (validators_.getTimestamp() - timestamp_ > DropoutTime) {
       reset();
       return false;
     }
@@ -34,7 +34,7 @@ bool StateReader::feed(const int byte) {
     break;
 
   case WAITING_FOR_SOURCE:
-    if (getTimestamp_() - timestamp_ > DropoutTime) {
+    if (validators_.getTimestamp() - timestamp_ > DropoutTime) {
       reset();
       return false;
     }
@@ -49,7 +49,7 @@ bool StateReader::feed(const int byte) {
     break;
 
   case WAITING_FOR_DATA:
-    if (getTimestamp_() - timestamp_ > DropoutTime) {
+    if (validators_.getTimestamp() - timestamp_ > DropoutTime) {
       reset();
       return false;
     }
@@ -60,12 +60,13 @@ bool StateReader::feed(const int byte) {
     break;
 
   case WAITING_FOR_CHECKSUM:
-    if (getTimestamp_() - timestamp_ > DropoutTime) {
+    if (validators_.getTimestamp() - timestamp_ > DropoutTime) {
       reset();
       return false;
     }
     checksum_ = byte;
-    if (!isHeaderValid_(header_) || !isSourceValid_(source_) || !isTargetValid_(target_) || !isChecksumValid()) {
+    if (!validators_.isHeaderValid(header_) || !validators_.isSourceValid(source_) ||
+        !validators_.isTargetValid(target_) || !isChecksumValid()) {
       reset();
       return false;
     }
@@ -82,10 +83,7 @@ Message StateReader::getMessage() {
   return message;
 }
 
-StateReader::StateReader(Validator isHeaderValid, Validator isTargetValid, Validator isSourceValid,
-                         TimestampProvider getTimestamp)
-    : isHeaderValid_(std::move(isHeaderValid)), isTargetValid_(std::move(isTargetValid)),
-      isSourceValid_(std::move(isSourceValid)), getTimestamp_(std::move(getTimestamp)) {}
+StateReader::StateReader(StateReaderValidators validators) : validators_(std::move(validators)) {}
 
 void StateReader::reset() {
   state_ = WAITING_FOR_HEADER;

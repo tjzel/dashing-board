@@ -72,10 +72,7 @@ void DataLink::onControllerBufferChanged_() {
 }
 
 void DataLink::onControllerBufferReadWhenEmpty_() {
-  // Simulating that another controller request was sent.
-  const Message message{
-      REQUEST_HEADER | OBD2_MIN_HEADER_SIZE, ECU_ADDRESS, CONTROLLER_ADDRESS, {ENGINE_RPM::mode, ENGINE_RPM::pid}};
-  controllerWrite(std::vector<Byte>{message});
+  // Do nothing for now.
 }
 
 void DataLink::ecuBufferChanged_() {

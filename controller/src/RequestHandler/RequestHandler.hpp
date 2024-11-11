@@ -28,19 +28,9 @@ private:
 
   TCommunicator &comm_;
   TDebugCommunicator &debugComm_;
-  // TODO: These conditions are far from ideal.
-  // TODO: Move initialization to the constructor.
-  StateReader _stateReader{// [](Byte byte) { return (byte & REQUEST_HEADER_MODE_MASK) == 0xc0; },
-                           [](const Byte) { return true; }, [](const Byte) { return true; },
-                           // [](const Byte byte) { return byte == 0xf1; },
-                           [](const Byte) { return true; },
-                           // TODO: Fix this with a proper timestamp provider injection.
-                           // millis,
-                           []() { return 0; }};
-  std::map<CommandLiteral, bool> availableCommands_{{DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::value, true},
-                                                    {DiagnosticCommands::ENGINE_RPM::value, true},
-                                                    {DiagnosticCommands::VEHICLE_SPEED::value, true}};
-  bool isCommunicationInitialized_{false};
+  StateReader _stateReader;
+  std::map<CommandLiteral, bool> availableCommands_;
+  bool isCommunicationInitialized_{};
 };
 
 /* #region Implementation */
@@ -116,7 +106,8 @@ DataFrame RequestHandler<TCommunicator, TDebugCommunicator>::getDataFrame() {
                    .uptime = get<DiagnosticCommands::UPTIME>(),
                    .fuelLevel = get<DiagnosticCommands::FUEL_LEVEL>(),
                    .absoluteLoad = get<DiagnosticCommands::ABSOLUTE_LOAD>(),
-                   .relativeThrottlePosition = get<DiagnosticCommands::RELATIVE_THROTTLE_POSITION>(),
+                   .relativeThrottlePosition =
+                       get<DiagnosticCommands::RELATIVE_THROTTLE_POSITION>(),
                    .engineFuelRate = get<DiagnosticCommands::ENGINE_FUEL_RATE>()};
 }
 
@@ -219,7 +210,8 @@ bool RequestHandler<TCommunicator, TDebugCommunicator>::initializeCommunication(
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
-std::vector<Byte> RequestHandler<TCommunicator, TDebugCommunicator>::request(CommandLiteral command) {
+std::vector<Byte>
+RequestHandler<TCommunicator, TDebugCommunicator>::request(CommandLiteral command) {
   // TODO: Fix magic numbers.
   Message message{0xc2, 0x33, 0xf1, {command.mode, command.pid}};
   comm_.write(std::vector<Byte>{message});
@@ -238,7 +230,8 @@ std::vector<Byte> RequestHandler<TCommunicator, TDebugCommunicator>::request(Com
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
-bool RequestHandler<TCommunicator, TDebugCommunicator>::isCommandAvailable(CommandLiteral command) const {
+bool RequestHandler<TCommunicator, TDebugCommunicator>::isCommandAvailable(
+    CommandLiteral command) const {
   return availableCommands_.contains(command);
 }
 
@@ -248,8 +241,19 @@ bool RequestHandler<TCommunicator, TDebugCommunicator>::isCommunicationInitializ
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
-RequestHandler<TCommunicator, TDebugCommunicator>::RequestHandler(TCommunicator &comm, TDebugCommunicator &debugComm)
-    : comm_(comm), debugComm_(debugComm) {}
+RequestHandler<TCommunicator, TDebugCommunicator>::RequestHandler(TCommunicator &comm,
+                                                                  TDebugCommunicator &debugComm)
+    : comm_(comm), debugComm_(debugComm),
+      // TODO: Fix conditions here.
+      _stateReader({// [](Byte byte) { return (byte & REQUEST_HEADER_MODE_MASK) == 0xc0; },
+                    .isHeaderValid = [](const Byte) { return true; },
+                    .isTargetValid = [](const Byte) { return true; },
+                    // [](const Byte byte) { return byte == 0xf1; },
+                    .isSourceValid = [](const Byte) { return true; },
+                    // TODO: Fix this with a proper timestamp provider injection.
+                    // millis,
+                    .getTimestamp = []() { return 0; }}),
+      availableCommands_({{DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::value, true}}) {}
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 template <DiagnosticCommands::CommandAvailability TCommand>

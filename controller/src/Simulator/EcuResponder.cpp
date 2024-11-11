@@ -15,7 +15,8 @@ EcuInternalResponse EcuResponder::request(Message &message) {
 
 EcuInternalResponse EcuResponder::request(OBD2Message &message) {
   if (message.command() == DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::value) {
-    return {.hasResponse = true, .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>(message)};
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>(message)};
   }
   if (message.command() == DiagnosticCommands::ENGINE_RPM::value) {
     return {.hasResponse = true, .response = respondTo<DiagnosticCommands::ENGINE_RPM>(message)};
@@ -27,7 +28,9 @@ EcuInternalResponse EcuResponder::request(OBD2Message &message) {
   return {.hasResponse = false, .response = {0x00, 0x00, 0x00, {}}};
 }
 
-template <> Message EcuResponder::respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>(OBD2Message &message) {
+template <>
+Message
+EcuResponder::respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>(OBD2Message &message) {
   // TODO: DRY
   const Byte target = message.source();
   // TODO: Don't hardcode + 0x40 here.
@@ -49,13 +52,13 @@ template <> Message EcuResponder::respondTo<DiagnosticCommands::ENGINE_RPM>(OBD2
   const Byte pid = DiagnosticCommands::ENGINE_RPM::pid;
   assert(pid == message.pid());
   auto rpm = rpmProvider_.get();
-  // std::cout << "wartosc: " << rpm << std::endl;
   const auto data = Parser<DiagnosticCommands::ENGINE_RPM>::reverseParse(rpm);
   assert(data.size() == DiagnosticCommands::ENGINE_RPM::ParsingFormula::byteCount);
   return createResponse(target, mode, pid, data);
 }
 
-template <> Message EcuResponder::respondTo<DiagnosticCommands::VEHICLE_SPEED>(OBD2Message &message) {
+template <>
+Message EcuResponder::respondTo<DiagnosticCommands::VEHICLE_SPEED>(OBD2Message &message) {
   // TODO: DRY
   const Byte target = message.source();
   // TODO: Don't hardcode + 0x40 here.
@@ -74,9 +77,11 @@ Message EcuResponder::respondToInit(Message &message) {
   return createResponse(message.source, initOkData);
 }
 
-Message EcuResponder::createResponse(const Byte target, const Byte mode, const Byte pid, const std::vector<Byte> &obd2Data) {
+Message EcuResponder::createResponse(const Byte target, const Byte mode, const Byte pid,
+                                     const std::vector<Byte> &obd2Data) {
   // TODO: DRY
-  const Byte size = obd2Data.size() + OBD2_MIN_HEADER_SIZE;
+  const Byte modeAndPidSize = 2;
+  const Byte size = obd2Data.size() + modeAndPidSize;
   const Byte format = RESPONSE_HEADER | size;
   const Byte source = ECU_ADDRESS;
 
@@ -89,7 +94,8 @@ Message EcuResponder::createResponse(const Byte target, const Byte mode, const B
 
 Message EcuResponder::createResponse(const Byte target, const std::vector<Byte> &data) {
   // TODO: DRY
-  const Byte size = data.size() + OBD2_MIN_HEADER_SIZE;
+  const Byte modeAndPidSize = 2;
+  const Byte size = data.size() + modeAndPidSize;
   const Byte format = RESPONSE_HEADER | size;
   const Byte source = ECU_ADDRESS;
 

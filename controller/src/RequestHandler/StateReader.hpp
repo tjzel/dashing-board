@@ -6,6 +6,13 @@
 #include <functional>
 #include <vector>
 
+struct StateReaderValidators {
+  std::function<bool(Byte)> isHeaderValid;
+  std::function<bool(Byte)> isTargetValid;
+  std::function<bool(Byte)> isSourceValid;
+  std::function<uint64_t()> getTimestamp;
+};
+
 enum State : std::uint8_t {
   WAITING_FOR_HEADER,
   WAITING_FOR_TARGET,
@@ -22,17 +29,13 @@ class StateReader {
 public:
   bool feed(int byte);
   Message getMessage();
-  explicit StateReader(Validator isHeaderValid, Validator isTargetValid, Validator isSourceValid,
-                       TimestampProvider getTimestamp);
+  explicit StateReader(StateReaderValidators validators);
 
 private:
   void reset();
   bool isChecksumValid();
 
-  std::function<bool(Byte)> isHeaderValid_;
-  std::function<bool(Byte)> isTargetValid_;
-  std::function<bool(Byte)> isSourceValid_;
-  std::function<uint64_t()> getTimestamp_;
+  StateReaderValidators validators_;
 
   Byte header_{};
   Byte dataSize_{};
