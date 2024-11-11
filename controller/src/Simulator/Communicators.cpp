@@ -14,9 +14,16 @@ bool RequestHandlerDataLinkCommunicator::available() { return dataLink_.controll
 
 void RequestHandlerDataLinkCommunicator::write(Byte byte) { dataLink_.controllerWrite(byte); }
 
-void RequestHandlerDataLinkCommunicator::write(const std::vector<Byte> &message) { dataLink_.controllerWrite(message); }
+void RequestHandlerDataLinkCommunicator::write(const std::vector<Byte> &message) {
+  dataLink_.controllerWrite(message);
+}
 
-RequestHandlerDataLinkCommunicator::RequestHandlerDataLinkCommunicator(DataLink &dataLinkMock) : dataLink_(dataLinkMock) {}
+void RequestHandlerDataLinkCommunicator::init() {}
+
+void RequestHandlerDataLinkCommunicator::setOnNewData(std::function<void()> /*onNewData*/) {}
+
+RequestHandlerDataLinkCommunicator::RequestHandlerDataLinkCommunicator(DataLink &dataLinkMock)
+    : dataLink_(dataLinkMock) {}
 
 /* #endregion RequestHandlerDataLinkCommunicator */
 /* #region EcuMockDataLinkCommunicator */
@@ -27,13 +34,18 @@ bool EcuMockDataLinkCommunicator::available() { return dataLink_.ecuReadAvailabl
 
 void EcuMockDataLinkCommunicator::write(Byte byte) { dataLink_.ecuWrite(byte); }
 
-void EcuMockDataLinkCommunicator::write(const std::vector<Byte> &message) { dataLink_.ecuWrite(message); }
+void EcuMockDataLinkCommunicator::write(const std::vector<Byte> &message) {
+  dataLink_.ecuWrite(message);
+}
+
+void EcuMockDataLinkCommunicator::init() {}
 
 void EcuMockDataLinkCommunicator::setOnNewData(std::function<void()> onNewData) {
   dataLink_.setOnNewDataForEcu(std::move(onNewData));
 }
 
-EcuMockDataLinkCommunicator::EcuMockDataLinkCommunicator(DataLink &dataLinkMock) : dataLink_(dataLinkMock) {}
+EcuMockDataLinkCommunicator::EcuMockDataLinkCommunicator(DataLink &dataLinkMock)
+    : dataLink_(dataLinkMock) {}
 
 /* #endregion EcuMockDataLinkCommunicator */
 

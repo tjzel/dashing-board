@@ -12,9 +12,11 @@ struct Simulator {
   StdioDebugCommunicator debugCommunicator{};
   RequestHandlerDataLinkCommunicator requestHandlerCommunicator{dataLink};
   EcuMockDataLinkCommunicator ecuCommunicator{dataLink};
-  EcuMock<EcuMockDataLinkCommunicator, StdioDebugCommunicator> ecuMock{ecuCommunicator, debugCommunicator};
-  RequestHandler<RequestHandlerDataLinkCommunicator, StdioDebugCommunicator> requestHandler{requestHandlerCommunicator,
-                                                                                            debugCommunicator};
+  EcuMock<EcuMockDataLinkCommunicator, StdioDebugCommunicator> ecuMock{ecuCommunicator,
+                                                                       debugCommunicator};
+  RequestHandler<RequestHandlerDataLinkCommunicator, StdioDebugCommunicator> requestHandler{
+      requestHandlerCommunicator, debugCommunicator};
+  Simulator() { requestHandler.loadAvailability(); }
 };
 
 TEST(DiagnosticCommandsTest, HandlesPositiveResponse) {
@@ -41,12 +43,12 @@ TEST(DiagnosticCommandsTest, HandlesErrors) {
 
 TEST(RequestHandlerDataLinkCommunicatorTest, MethodsTest) {
   Simulator simulator{};
+
   ASSERT_NO_THROW(simulator.requestHandlerCommunicator.read());
   ASSERT_NO_THROW(simulator.requestHandlerCommunicator.available());
-  // ASSERT_NO_THROW(simulator.requestHandlerCommunicator.fastInit());
+  ASSERT_NO_THROW(simulator.requestHandlerCommunicator.init());
   ASSERT_NO_THROW(simulator.requestHandlerCommunicator.write(0x01));
-  // std::function<void()> f;
-  // ASSERT_NO_THROW(simulator.requestHandlerCommunicator.setOnNewData([]() {}));
+  ASSERT_NO_THROW(simulator.requestHandlerCommunicator.setOnNewData([]() {}));
 }
 
 TEST(RequestHandlerTest, MethodsTest) {
@@ -57,10 +59,11 @@ TEST(RequestHandlerTest, MethodsTest) {
   ASSERT_NO_THROW(simulator.requestHandler.printAvailableForDataFrame());
   ASSERT_NO_THROW(simulator.requestHandler.getDataFrame());
   ASSERT_NO_THROW(simulator.requestHandler.sniff());
-  // ASSERT_NO_THROW(simulator.requestHandler.initializeCommunication());
+  ASSERT_NO_THROW(simulator.requestHandler.initializeCommunication());
   ASSERT_NO_THROW(simulator.requestHandler.request({}));
-  // ASSERT_NO_THROW(simulator.requestHandler.isCommandAvailable());
-  // ASSERT_NO_THROW(simulator.requestHandler.isCommunicationInitialized());
+  ASSERT_NO_THROW(
+      simulator.requestHandler.isCommandAvailable(DiagnosticCommands::FUEL_LEVEL::value));
+  ASSERT_NO_THROW(simulator.requestHandler.isCommunicationInitialized());
 }
 
 TEST(DataLinkTest, MethodsTest) {
@@ -85,5 +88,22 @@ TEST(EcuMockDataLinkCommunicator, MethodsTest) {
   ASSERT_NO_THROW(simulator.ecuCommunicator.read());
   ASSERT_NO_THROW(simulator.ecuCommunicator.available());
   ASSERT_NO_THROW(simulator.ecuCommunicator.write(0x01));
-  ASSERT_NO_THROW(simulator.ecuCommunicator.write(0x01));
+  ASSERT_NO_THROW(simulator.ecuCommunicator.write({0x01, 0x02, 0x03}));
+  ASSERT_NO_THROW(simulator.ecuCommunicator.init());
+  ASSERT_NO_THROW(simulator.ecuCommunicator.setOnNewData([]() {}));
+}
+
+TEST(EcuMockTest, MethodsTest) {
+  Simulator simulator{};
+  ASSERT_NO_THROW(simulator.ecuMock.inputArrivedHandler());
+}
+
+TEST(StdioDebugCommunicatorTest, MethodsTest) {
+  Simulator simulator{};
+
+  ASSERT_NO_THROW(simulator.debugCommunicator.print(0x01));
+  ASSERT_NO_THROW(simulator.debugCommunicator.print("Hello"));
+  ASSERT_NO_THROW(simulator.debugCommunicator.println(0x01));
+  ASSERT_NO_THROW(simulator.debugCommunicator.println("Hello"));
+  ASSERT_NO_THROW(simulator.debugCommunicator.println());
 }

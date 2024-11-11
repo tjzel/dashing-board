@@ -7,26 +7,27 @@
 #include <stdexcept>
 #include <vector>
 
-template <DiagnosticCommands::Command TCommand> struct Parser {
-  static auto parse(std::span<const Byte> /*message*/) -> typename TCommand::ParsingFormula::ValueType {
-    throw std::runtime_error("No parser found for command " + std::to_string(TCommand::mode) + ":" +
-                             std::to_string(TCommand::pid));
+template <DiagnosticCommands::Command TCommand> struct DiagnosticCodec {
+  static auto decode(std::span<const Byte> /*message*/) -> typename TCommand::Encoding::ValueType {
+    throw std::runtime_error("No decoder found for command " + std::to_string(TCommand::mode) +
+                             ":" + std::to_string(TCommand::pid));
   }
 
-  static auto reverseParse(const typename TCommand::ParsingFormula::ValueType /*result*/) -> std::vector<Byte> {
-    throw std::runtime_error("No reverse parser found for command " + std::to_string(TCommand::mode) + ":" +
-                             std::to_string(TCommand::pid));
+  static auto encode(const typename TCommand::Encoding::ValueType /*result*/) -> std::vector<Byte> {
+    throw std::runtime_error("No encoder found for command " + std::to_string(TCommand::mode) +
+                             ":" + std::to_string(TCommand::pid));
   }
 };
 
 // Test
-static_assert(
-    std::is_same_v<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::ParsingFormula, ParsingFormulas::CommandAvailability>);
+static_assert(std::is_same_v<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::Encoding,
+                             Encodings::CommandAvailability>);
 
 template <DiagnosticCommands::Command TCommand>
-  requires std::is_same_v<typename TCommand::ParsingFormula, ParsingFormulas::CommandAvailability>
-struct Parser<TCommand> {
-  static auto parse(const std::span<const Byte> message) -> typename TCommand::ParsingFormula::ValueType {
+  requires std::is_same_v<typename TCommand::Encoding, Encodings::CommandAvailability>
+struct DiagnosticCodec<TCommand> {
+  static auto decode(const std::span<const Byte> message) ->
+      typename TCommand::Encoding::ValueType {
     const auto data = message.subspan(2);
     std::map<CommandLiteral, bool> availability;
     const auto commandOffset = TCommand::pid + 1;
@@ -46,33 +47,34 @@ struct Parser<TCommand> {
     return availability;
   }
 
-  static auto reverseParse(const typename TCommand::ParsingFormula::ValueType /*result*/) -> std::vector<Byte> {
+  static auto encode(const typename TCommand::Encoding::ValueType /*result*/) -> std::vector<Byte> {
     throw std::runtime_error("Not implemented");
   }
 };
 
 // Test
-static_assert(std::is_same_v<DiagnosticCommands::VEHICLE_SPEED::ParsingFormula, ParsingFormulas::Identity<1, int>>);
+static_assert(
+    std::is_same_v<DiagnosticCommands::VEHICLE_SPEED::Encoding, Encodings::Identity<1, int>>);
 
 template <DiagnosticCommands::Command TCommand>
   requires std::is_same_v<
-      typename TCommand::ParsingFormula,
-      ParsingFormulas::Identity<TCommand::ParsingFormula::byteCount, typename TCommand::ParsingFormula::ValueType>>
-struct Parser<TCommand> {
-  static auto parse(std::span<const Byte> message) ->
+      typename TCommand::Encoding,
+      Encodings::Identity<TCommand::Encoding::byteCount, typename TCommand::Encoding::ValueType>>
+struct DiagnosticCodec<TCommand> {
+  static auto decode(std::span<const Byte> message) ->
 
-      typename TCommand::ParsingFormula::ValueType {
+      typename TCommand::Encoding::ValueType {
     const auto data = message.subspan(2);
-    assert(data.size() == TCommand::ParsingFormula::byteCount);
-    typename TCommand::ParsingFormula::ValueType result = 0;
+    assert(data.size() == TCommand::Encoding::byteCount);
+    typename TCommand::Encoding::ValueType result = 0;
     for (auto byte : data) {
       result = result * 256 + byte;
     }
     return result;
   }
 
-  static auto reverseParse(typename TCommand::ParsingFormula::ValueType result) -> std::vector<Byte> {
-    std::vector<Byte> data(TCommand::ParsingFormula::byteCount);
+  static auto encode(typename TCommand::Encoding::ValueType result) -> std::vector<Byte> {
+    std::vector<Byte> data(TCommand::Encoding::byteCount);
     for (size_t i = 0; i < data.size(); i++) {
       data[i] = result % 256;
       result /= 256;
@@ -82,53 +84,60 @@ struct Parser<TCommand> {
 };
 
 // Test
-static_assert(std::is_same_v<DiagnosticCommands::ENGINE_RPM::ParsingFormula, ParsingFormulas::MultiplyBy<2, int, 1, 4>>);
-static_assert(!std::is_same_v<DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula,
-                              ParsingFormulas::MultiplyBy<DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::byteCount,
-                                                          DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::ValueType,
-                                                          DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::Nominator,
-                                                          DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::Denominator>>);
-static_assert(!std::is_same_v<DiagnosticCommands::FUEL_LEVEL::ParsingFormula,
-                              ParsingFormulas::MultiplyBy<DiagnosticCommands::FUEL_LEVEL::ParsingFormula::byteCount,
-                                                          DiagnosticCommands::FUEL_LEVEL::ParsingFormula::ValueType,
-                                                          DiagnosticCommands::FUEL_LEVEL::ParsingFormula::Nominator,
-                                                          DiagnosticCommands::FUEL_LEVEL::ParsingFormula::Denominator>>);
-static_assert(std::is_base_of_v<ParsingFormulas::MultiplyBy<DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::byteCount,
-                                                            DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::ValueType,
-                                                            DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::Nominator,
-                                                            DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula::Denominator>,
-                                DiagnosticCommands::ABSOLUTE_LOAD::ParsingFormula>);
-static_assert(std::is_base_of_v<ParsingFormulas::MultiplyBy<DiagnosticCommands::FUEL_LEVEL::ParsingFormula::byteCount,
-                                                            DiagnosticCommands::FUEL_LEVEL::ParsingFormula::ValueType,
-                                                            DiagnosticCommands::FUEL_LEVEL::ParsingFormula::Nominator,
-                                                            DiagnosticCommands::FUEL_LEVEL::ParsingFormula::Denominator>,
-                                DiagnosticCommands::FUEL_LEVEL::ParsingFormula>);
+static_assert(
+    std::is_same_v<DiagnosticCommands::ENGINE_RPM::Encoding, Encodings::MultiplyBy<2, int, 1, 4>>);
+static_assert(!std::is_same_v<
+              DiagnosticCommands::ABSOLUTE_LOAD::Encoding,
+              Encodings::MultiplyBy<DiagnosticCommands::ABSOLUTE_LOAD::Encoding::byteCount,
+                                    DiagnosticCommands::ABSOLUTE_LOAD::Encoding::ValueType,
+                                    DiagnosticCommands::ABSOLUTE_LOAD::Encoding::Nominator,
+                                    DiagnosticCommands::ABSOLUTE_LOAD::Encoding::Denominator>>);
+static_assert(
+    !std::is_same_v<DiagnosticCommands::FUEL_LEVEL::Encoding,
+                    Encodings::MultiplyBy<DiagnosticCommands::FUEL_LEVEL::Encoding::byteCount,
+                                          DiagnosticCommands::FUEL_LEVEL::Encoding::ValueType,
+                                          DiagnosticCommands::FUEL_LEVEL::Encoding::Nominator,
+                                          DiagnosticCommands::FUEL_LEVEL::Encoding::Denominator>>);
+static_assert(std::is_base_of_v<
+              Encodings::MultiplyBy<DiagnosticCommands::ABSOLUTE_LOAD::Encoding::byteCount,
+                                    DiagnosticCommands::ABSOLUTE_LOAD::Encoding::ValueType,
+                                    DiagnosticCommands::ABSOLUTE_LOAD::Encoding::Nominator,
+                                    DiagnosticCommands::ABSOLUTE_LOAD::Encoding::Denominator>,
+              DiagnosticCommands::ABSOLUTE_LOAD::Encoding>);
+static_assert(
+    std::is_base_of_v<Encodings::MultiplyBy<DiagnosticCommands::FUEL_LEVEL::Encoding::byteCount,
+                                            DiagnosticCommands::FUEL_LEVEL::Encoding::ValueType,
+                                            DiagnosticCommands::FUEL_LEVEL::Encoding::Nominator,
+                                            DiagnosticCommands::FUEL_LEVEL::Encoding::Denominator>,
+                      DiagnosticCommands::FUEL_LEVEL::Encoding>);
 
 template <DiagnosticCommands::Command TCommand>
-  requires std::is_same_v<
-               typename TCommand::ParsingFormula,
-               ParsingFormulas::MultiplyBy<TCommand::ParsingFormula::byteCount, typename TCommand::ParsingFormula::ValueType,
-                                           TCommand::ParsingFormula::Nominator, TCommand::ParsingFormula::Denominator>> ||
+  requires std::is_same_v<typename TCommand::Encoding,
+                          Encodings::MultiplyBy<
+                              TCommand::Encoding::byteCount, typename TCommand::Encoding::ValueType,
+                              TCommand::Encoding::Nominator, TCommand::Encoding::Denominator>> ||
            std::is_base_of_v<
-               ParsingFormulas::MultiplyBy<TCommand::ParsingFormula::byteCount, typename TCommand::ParsingFormula::ValueType,
-                                           TCommand::ParsingFormula::Nominator, TCommand::ParsingFormula::Denominator>,
-               typename TCommand::ParsingFormula>
-struct Parser<TCommand> {
-  static auto parse(const std::span<const Byte> message) -> typename TCommand::ParsingFormula::ValueType {
+               Encodings::MultiplyBy<
+                   TCommand::Encoding::byteCount, typename TCommand::Encoding::ValueType,
+                   TCommand::Encoding::Nominator, TCommand::Encoding::Denominator>,
+               typename TCommand::Encoding>
+struct DiagnosticCodec<TCommand> {
+  static auto decode(const std::span<const Byte> message) ->
+      typename TCommand::Encoding::ValueType {
     const auto data = message.subspan(2);
-    assert(data.size() == TCommand::ParsingFormula::byteCount);
-    typename TCommand::ParsingFormula::ValueType result = 0;
+    assert(data.size() == TCommand::Encoding::byteCount);
+    typename TCommand::Encoding::ValueType result = 0;
     for (auto byte : data) {
       result = result * 256 + byte;
     }
-    result = result * TCommand::ParsingFormula::Nominator / TCommand::ParsingFormula::Denominator;
+    result = result * TCommand::Encoding::Nominator / TCommand::Encoding::Denominator;
     return result;
   }
 
-  static auto reverseParse(typename TCommand::ParsingFormula::ValueType result) -> std::vector<Byte> {
-    result = result * TCommand::ParsingFormula::Denominator / TCommand::ParsingFormula::Nominator;
+  static auto encode(typename TCommand::Encoding::ValueType result) -> std::vector<Byte> {
+    result = result * TCommand::Encoding::Denominator / TCommand::Encoding::Nominator;
 
-    std::vector<Byte> data(TCommand::ParsingFormula::byteCount);
+    std::vector<Byte> data(TCommand::Encoding::byteCount);
     for (int i = data.size() - 1; i > -1; i--) {
       data[i] = result % 256;
       result /= 256;

@@ -11,7 +11,8 @@
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator> class RequestHandler {
 public:
-  template <DiagnosticCommands::Command TCommand> auto get();
+  template <DiagnosticCommands::Command TCommand>
+  auto get() -> typename TCommand::Encoding::ValueType;
   void loadAvailability();
   void printAvailableCommands() const;
   void printAvailableForDataFrame() const;
@@ -37,9 +38,8 @@ private:
                            // TODO: Fix this with a proper timestamp provider injection.
                            // millis,
                            []() { return 0; }};
-  std::map<CommandLiteral, bool> availableCommands_{{DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::value, true},
-                                                    {DiagnosticCommands::ENGINE_RPM::value, true},
-                                                    {DiagnosticCommands::VEHICLE_SPEED::value, true}};
+  std::map<CommandLiteral, bool> availableCommands_{
+      {DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::value, true}};
   bool isCommunicationInitialized_{false};
 };
 
@@ -47,16 +47,25 @@ private:
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 template <DiagnosticCommands::Command TCommand>
-auto RequestHandler<TCommunicator, TDebugCommunicator>::get() {
+auto RequestHandler<TCommunicator, TDebugCommunicator>::get() ->
+    typename TCommand::Encoding::ValueType {
+
   const auto command = TCommand::value;
+  if (!availableCommands_.contains(command)) {
+    if constexpr (!std::is_assignable_v<typename TCommand::Encoding::ValueType, int>) {
+      return {};
+    } else {
+      return -1;
+    }
+  }
   const auto response = request(command);
-  const auto result = Parser<TCommand>::parse(response);
+  const auto result = DiagnosticCodec<TCommand>::decode(response);
   return result;
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 void RequestHandler<TCommunicator, TDebugCommunicator>::loadAvailability() {
-  debugComm_.println("Loading x001f");
+  // debugComm_.println("Loading x001f");
   loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>();
   // Something is off for the rest of those...
   // Probably asking ECU too fast.
@@ -72,7 +81,7 @@ void RequestHandler<TCommunicator, TDebugCommunicator>::loadAvailability() {
   // loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_A0_BF>();
   // _debugComm.println("Loading xc0df");
   // loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_C0_DF>();
-  debugComm_.println("Done loading availability");
+  // debugComm_.println("Done loading availability");
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
@@ -116,7 +125,8 @@ DataFrame RequestHandler<TCommunicator, TDebugCommunicator>::getDataFrame() {
                    .uptime = get<DiagnosticCommands::UPTIME>(),
                    .fuelLevel = get<DiagnosticCommands::FUEL_LEVEL>(),
                    .absoluteLoad = get<DiagnosticCommands::ABSOLUTE_LOAD>(),
-                   .relativeThrottlePosition = get<DiagnosticCommands::RELATIVE_THROTTLE_POSITION>(),
+                   .relativeThrottlePosition =
+                       get<DiagnosticCommands::RELATIVE_THROTTLE_POSITION>(),
                    .engineFuelRate = get<DiagnosticCommands::ENGINE_FUEL_RATE>()};
 }
 
@@ -134,7 +144,7 @@ bool RequestHandler<TCommunicator, TDebugCommunicator>::initializeCommunication(
   if (isCommunicationInitialized_) {
     return true;
   }
-  comm_.fastInit();
+  comm_.init();
   debugComm_.println("Fast init done");
   // TODO: Fix magic numbers.
   Message message{0xc1, 0x33, 0xf1, {0x81}};
@@ -219,7 +229,8 @@ bool RequestHandler<TCommunicator, TDebugCommunicator>::initializeCommunication(
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
-std::vector<Byte> RequestHandler<TCommunicator, TDebugCommunicator>::request(CommandLiteral command) {
+std::vector<Byte>
+RequestHandler<TCommunicator, TDebugCommunicator>::request(CommandLiteral command) {
   // TODO: Fix magic numbers.
   Message message{0xc2, 0x33, 0xf1, {command.mode, command.pid}};
   comm_.write(std::vector<Byte>{message});
@@ -238,7 +249,8 @@ std::vector<Byte> RequestHandler<TCommunicator, TDebugCommunicator>::request(Com
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
-bool RequestHandler<TCommunicator, TDebugCommunicator>::isCommandAvailable(CommandLiteral command) const {
+bool RequestHandler<TCommunicator, TDebugCommunicator>::isCommandAvailable(
+    CommandLiteral command) const {
   return availableCommands_.contains(command);
 }
 
@@ -248,7 +260,8 @@ bool RequestHandler<TCommunicator, TDebugCommunicator>::isCommunicationInitializ
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
-RequestHandler<TCommunicator, TDebugCommunicator>::RequestHandler(TCommunicator &comm, TDebugCommunicator &debugComm)
+RequestHandler<TCommunicator, TDebugCommunicator>::RequestHandler(TCommunicator &comm,
+                                                                  TDebugCommunicator &debugComm)
     : comm_(comm), debugComm_(debugComm) {}
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
