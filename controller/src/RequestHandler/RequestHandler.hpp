@@ -11,7 +11,8 @@
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator> class RequestHandler {
 public:
-  template <DiagnosticCommands::Command TCommand> auto get();
+  template <DiagnosticCommands::Command TCommand>
+  auto get() -> typename TCommand::Encoding::ValueType;
   void loadAvailability();
   void printAvailableCommands() const;
   void printAvailableForDataFrame() const;
@@ -37,16 +38,25 @@ private:
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 template <DiagnosticCommands::Command TCommand>
-auto RequestHandler<TCommunicator, TDebugCommunicator>::get() {
+auto RequestHandler<TCommunicator, TDebugCommunicator>::get() ->
+    typename TCommand::Encoding::ValueType {
+
   const auto command = TCommand::value;
+  if (!availableCommands_.contains(command)) {
+    if constexpr (!std::is_assignable_v<typename TCommand::Encoding::ValueType, int>) {
+      return {};
+    } else {
+      return -1;
+    }
+  }
   const auto response = request(command);
-  const auto result = Parser<TCommand>::parse(response);
+  const auto result = DiagnosticCodec<TCommand>::decode(response);
   return result;
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 void RequestHandler<TCommunicator, TDebugCommunicator>::loadAvailability() {
-  debugComm_.println("Loading x001f");
+  // debugComm_.println("Loading x001f");
   loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>();
   // Something is off for the rest of those...
   // Probably asking ECU too fast.
@@ -62,7 +72,7 @@ void RequestHandler<TCommunicator, TDebugCommunicator>::loadAvailability() {
   // loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_A0_BF>();
   // _debugComm.println("Loading xc0df");
   // loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_C0_DF>();
-  debugComm_.println("Done loading availability");
+  // debugComm_.println("Done loading availability");
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
@@ -125,7 +135,7 @@ bool RequestHandler<TCommunicator, TDebugCommunicator>::initializeCommunication(
   if (isCommunicationInitialized_) {
     return true;
   }
-  comm_.fastInit();
+  comm_.init();
   debugComm_.println("Fast init done");
   // TODO: Fix magic numbers.
   Message message{0xc1, 0x33, 0xf1, {0x81}};

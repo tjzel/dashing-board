@@ -6,7 +6,7 @@
 
 using DiagnosticCommands::ENGINE_RPM;
 
-Byte DataLink::controllerRead() {
+int DataLink::controllerRead() {
   if (controllerBufferView_.empty()) {
     onControllerBufferReadWhenEmpty_();
   }
@@ -36,9 +36,10 @@ void DataLink::controllerWrite(const std::vector<Byte> &message) {
   newDataForEcu_();
 }
 
-Byte DataLink::ecuRead() {
+int DataLink::ecuRead() {
   if (ecuBufferView_.empty()) {
-    throw std::runtime_error("ECU should never attempt to read from an empty buffer.");
+    // throw std::runtime_error("ECU should never attempt to read from an empty buffer.");
+    return -1;
   }
   const auto byte = ecuBufferView_.front();
   ecuBegin_++;

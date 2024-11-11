@@ -25,7 +25,7 @@ struct CommandLiteral {
   const Byte pid;
 };
 
-namespace ParsingFormulas {
+namespace Encodings {
 template <const Byte TByteCount, typename TValueType> struct Identity {
   constexpr static Byte byteCount = TByteCount;
   using ValueType = TValueType;
@@ -44,49 +44,54 @@ template <const Byte TByteCount>
 struct Percentage : MultiplyBy<TByteCount, double, percentageNominator, percentageDenominator> {};
 
 struct CommandAvailability : Identity<4, const std::map<CommandLiteral, bool>> {};
-} // namespace ParsingFormulas
+} // namespace Encodings
 
 namespace DiagnosticCommands {
 namespace internal {
 
-template <const Byte TMode, const Byte TPid, typename TParsingFormula>
-  requires std::is_base_of_v<ParsingFormulas::Identity<TParsingFormula::byteCount, typename TParsingFormula::ValueType>,
-                             TParsingFormula>
-struct CommandWithFormula {
+template <const Byte TMode, const Byte TPid, typename TEncoding>
+  requires std::is_base_of_v<
+      Encodings::Identity<TEncoding::byteCount, typename TEncoding::ValueType>, TEncoding>
+struct CommandWithEncoding {
   constexpr static Byte mode = TMode;
   constexpr static Byte pid = TPid;
   constexpr static CommandLiteral value = {.mode = TMode, .pid = TPid};
-  using ParsingFormula = TParsingFormula;
+  using Encoding = TEncoding;
 };
 
 template <const Byte TMode, const Byte TPid>
-struct PrefixedCommandAvailability : CommandWithFormula<TMode, TPid, ParsingFormulas::CommandAvailability> {};
+struct PrefixedCommandAvailability
+    : CommandWithEncoding<TMode, TPid, Encodings::CommandAvailability> {};
 } // namespace internal
 
 template <class TCommand>
-concept Command =
-    std::is_base_of_v<internal::CommandWithFormula<TCommand::mode, TCommand::pid, typename TCommand::ParsingFormula>, TCommand>;
+concept Command = std::is_base_of_v<
+    internal::CommandWithEncoding<TCommand::mode, TCommand::pid, typename TCommand::Encoding>,
+    TCommand>;
 
 template <class TCommand>
-concept CommandAvailability =
-    std::is_base_of_v<internal::CommandWithFormula<TCommand::mode, TCommand::pid, ParsingFormulas::CommandAvailability>,
-                      TCommand>;
+concept CommandAvailability = std::is_base_of_v<
+    internal::CommandWithEncoding<TCommand::mode, TCommand::pid, Encodings::CommandAvailability>,
+    TCommand>;
 
 struct COMMAND_AVAILABILITY_00_1F : internal::PrefixedCommandAvailability<0x01, 0x00> {};
-struct ENGINE_LOAD : internal::CommandWithFormula<0x01, 0x04, ParsingFormulas::Percentage<1>> {};
-struct ENGINE_RPM : internal::CommandWithFormula<0x01, 0x0C, ParsingFormulas::MultiplyBy<2, int, 1, 4>> {};
+struct ENGINE_LOAD : internal::CommandWithEncoding<0x01, 0x04, Encodings::Percentage<1>> {};
+struct ENGINE_RPM : internal::CommandWithEncoding<0x01, 0x0C, Encodings::MultiplyBy<2, int, 1, 4>> {
+};
 
-struct VEHICLE_SPEED : internal::CommandWithFormula<0x01, 0x0D, ParsingFormulas::Identity<1, int>> {};
-struct THROTTLE_POSITION : internal::CommandWithFormula<0x01, 0x11, ParsingFormulas::Percentage<1>> {};
-struct UPTIME : internal::CommandWithFormula<0x01, 0x1F, ParsingFormulas::Identity<2, int>> {};
+struct VEHICLE_SPEED : internal::CommandWithEncoding<0x01, 0x0D, Encodings::Identity<1, int>> {};
+struct THROTTLE_POSITION : internal::CommandWithEncoding<0x01, 0x11, Encodings::Percentage<1>> {};
+struct UPTIME : internal::CommandWithEncoding<0x01, 0x1F, Encodings::Identity<2, int>> {};
 
 struct COMMAND_AVAILABILITY_20_3F : internal::PrefixedCommandAvailability<0x01, 0x20> {};
-struct FUEL_LEVEL : internal::CommandWithFormula<0x01, 0x2F, ParsingFormulas::Percentage<1>> {};
+struct FUEL_LEVEL : internal::CommandWithEncoding<0x01, 0x2F, Encodings::Percentage<1>> {};
 
 struct COMMAND_AVAILABILITY_40_5F : internal::PrefixedCommandAvailability<0x01, 0x40> {};
-struct ABSOLUTE_LOAD : internal::CommandWithFormula<0x01, 0x43, ParsingFormulas::Percentage<2>> {};
-struct RELATIVE_THROTTLE_POSITION : internal::CommandWithFormula<0x01, 0x45, ParsingFormulas::Percentage<1>> {};
-struct ENGINE_FUEL_RATE : internal::CommandWithFormula<0x01, 0x5E, ParsingFormulas::MultiplyBy<2, double, 1, 20>> {};
+struct ABSOLUTE_LOAD : internal::CommandWithEncoding<0x01, 0x43, Encodings::Percentage<2>> {};
+struct RELATIVE_THROTTLE_POSITION
+    : internal::CommandWithEncoding<0x01, 0x45, Encodings::Percentage<1>> {};
+struct ENGINE_FUEL_RATE
+    : internal::CommandWithEncoding<0x01, 0x5E, Encodings::MultiplyBy<2, double, 1, 20>> {};
 
 struct COMMAND_AVAILABILITY_60_7F : internal::PrefixedCommandAvailability<0x01, 0x60> {};
 

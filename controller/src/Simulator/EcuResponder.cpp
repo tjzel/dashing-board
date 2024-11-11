@@ -38,9 +38,9 @@ EcuResponder::respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>(OBD2Mess
   const Byte pid = DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::pid;
   assert(pid == message.pid());
   // 0x18 - only RPM and SPEED available.
-  // TODO: Use reverseParse from a map.
+  // TODO: Use encode from a map.
   const std::vector<Byte> data{0x00, 0x18, 0x00, 0x00};
-  assert(data.size() == DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::ParsingFormula::byteCount);
+  assert(data.size() == DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::Encoding::byteCount);
   return createResponse(target, mode, pid, data);
 }
 
@@ -52,8 +52,8 @@ template <> Message EcuResponder::respondTo<DiagnosticCommands::ENGINE_RPM>(OBD2
   const Byte pid = DiagnosticCommands::ENGINE_RPM::pid;
   assert(pid == message.pid());
   auto rpm = rpmProvider_.get();
-  const auto data = Parser<DiagnosticCommands::ENGINE_RPM>::reverseParse(rpm);
-  assert(data.size() == DiagnosticCommands::ENGINE_RPM::ParsingFormula::byteCount);
+  const auto data = DiagnosticCodec<DiagnosticCommands::ENGINE_RPM>::encode(rpm);
+  assert(data.size() == DiagnosticCommands::ENGINE_RPM::Encoding::byteCount);
   return createResponse(target, mode, pid, data);
 }
 
@@ -65,8 +65,9 @@ Message EcuResponder::respondTo<DiagnosticCommands::VEHICLE_SPEED>(OBD2Message &
   const Byte mode = DiagnosticCommands::VEHICLE_SPEED::mode + 0x40;
   const Byte pid = DiagnosticCommands::VEHICLE_SPEED::pid;
   assert(pid == message.pid());
-  const auto data = Parser<DiagnosticCommands::VEHICLE_SPEED>::reverseParse(speedProvider_.get());
-  assert(data.size() == DiagnosticCommands::VEHICLE_SPEED::ParsingFormula::byteCount);
+  const auto data =
+      DiagnosticCodec<DiagnosticCommands::VEHICLE_SPEED>::encode(speedProvider_.get());
+  assert(data.size() == DiagnosticCommands::VEHICLE_SPEED::Encoding::byteCount);
   return createResponse(target, mode, pid, data);
 }
 

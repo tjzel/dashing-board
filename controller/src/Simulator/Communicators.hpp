@@ -17,7 +17,7 @@ public:
   void write(Byte byte);
   void write(const std::vector<Byte> &message);
 
-  void fastInit();
+  void init();
   void setOnNewData(std::function<void()> onNewData);
 
   explicit RequestHandlerDataLinkCommunicator(DataLink &dataLink);
@@ -36,7 +36,7 @@ public:
   void write(Byte byte);
   void write(const std::vector<Byte> &message);
 
-  void fastInit();
+  void init();
 
   void setOnNewData(std::function<void()> onNewData);
 

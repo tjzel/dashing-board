@@ -51,7 +51,7 @@ EcuMock<TCommunicator, TDebugCommunicator>::EcuMock(TCommunicator &comm,
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 void EcuMock<TCommunicator, TDebugCommunicator>::handleInput() {
   auto byte = comm_.read();
-  if (!stateReader_.feed(byte)) {
+  if (byte == -1 || !stateReader_.feed(byte)) {
     return;
   };
   auto message = stateReader_.getMessage();

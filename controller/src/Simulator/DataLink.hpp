@@ -14,17 +14,19 @@ using ByteBuffer = std::array<Byte, BUFFER_SIZE>;
 
 class DataLink {
 public:
-  Byte controllerRead();
+  int controllerRead();
   bool controllerReadAvailable();
   void controllerWrite(Byte byte);
   void controllerWrite(const std::vector<Byte> &message);
 
-  Byte ecuRead();
+  int ecuRead();
   bool ecuReadAvailable();
   void ecuWrite(Byte byte);
   void ecuWrite(const std::vector<Byte> &message);
 
-  void setOnNewDataForEcu(std::function<void()> onNewDataForEcu) { onNewDataForEcu_ = std::move(onNewDataForEcu); }
+  void setOnNewDataForEcu(std::function<void()> onNewDataForEcu) {
+    onNewDataForEcu_ = std::move(onNewDataForEcu);
+  }
 
 private:
   ByteBuffer controllerBuffer_{};

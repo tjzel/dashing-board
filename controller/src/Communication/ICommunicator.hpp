@@ -19,7 +19,7 @@ concept ICommunicator =
       { comm.write(dataByte) } -> std::same_as<void>;
       { comm.write(message) } -> std::same_as<void>;
       { comm.available() } -> std::same_as<bool>;
-      { comm.fastInit() } -> std::same_as<void>;
+      { comm.init() } -> std::same_as<void>;
       { comm.setOnNewData(onNewData) } -> std::same_as<void>;
     };
 
