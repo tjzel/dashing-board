@@ -139,7 +139,7 @@ struct DiagnosticCodec<TCommand> {
 
     std::vector<Byte> data(TCommand::Encoding::byteCount);
     for (int i = data.size() - 1; i > -1; i--) {
-      data[i] = result % 256;
+      data[i] = (int)result % 256;
       result /= 256;
     }
 
