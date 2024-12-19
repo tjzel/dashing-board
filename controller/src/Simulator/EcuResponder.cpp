@@ -24,51 +24,33 @@ EcuInternalResponse EcuResponder::request(OBD2Message &message) {
   if (message.command() == DiagnosticCommands::VEHICLE_SPEED::value) {
     return {.hasResponse = true, .response = respondTo<DiagnosticCommands::VEHICLE_SPEED>(message)};
   }
+  if (message.command() == DiagnosticCommands::ENGINE_LOAD::value) {
+    return {.hasResponse = true, .response = respondTo<DiagnosticCommands::ENGINE_LOAD>(message)};
+  }
+  if (message.command() == DiagnosticCommands::THROTTLE_POSITION::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::THROTTLE_POSITION>(message)};
+  }
+  if (message.command() == DiagnosticCommands::UPTIME::value) {
+    return {.hasResponse = true, .response = respondTo<DiagnosticCommands::UPTIME>(message)};
+  }
+  if (message.command() == DiagnosticCommands::FUEL_LEVEL::value) {
+    return {.hasResponse = true, .response = respondTo<DiagnosticCommands::FUEL_LEVEL>(message)};
+  }
+  if (message.command() == DiagnosticCommands::ABSOLUTE_LOAD::value) {
+    return {.hasResponse = true, .response = respondTo<DiagnosticCommands::ABSOLUTE_LOAD>(message)};
+  }
+  if (message.command() == DiagnosticCommands::RELATIVE_THROTTLE_POSITION::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::RELATIVE_THROTTLE_POSITION>(message)};
+  }
+  if (message.command() == DiagnosticCommands::ENGINE_FUEL_RATE::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::ENGINE_FUEL_RATE>(message)};
+  }
+
   // TODO: Use mock message instead.
   return {.hasResponse = false, .response = {0x00, 0x00, 0x00, {}}};
-}
-
-template <>
-Message
-EcuResponder::respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>(OBD2Message &message) {
-  // TODO: DRY
-  const Byte target = message.source();
-  // TODO: Don't hardcode + 0x40 here.
-  const Byte mode = DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::mode + 0x40;
-  const Byte pid = DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::pid;
-  assert(pid == message.pid());
-  // 0x18 - only RPM and SPEED available.
-  // TODO: Use encode from a map.
-  const std::vector<Byte> data{0x00, 0x18, 0x00, 0x00};
-  assert(data.size() == DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::Encoding::byteCount);
-  return createResponse(target, mode, pid, data);
-}
-
-template <> Message EcuResponder::respondTo<DiagnosticCommands::ENGINE_RPM>(OBD2Message &message) {
-  // TODO: DRY
-  const Byte target = message.source();
-  // TODO: Don't hardcode + 0x40 here.
-  const Byte mode = DiagnosticCommands::ENGINE_RPM::mode + 0x40;
-  const Byte pid = DiagnosticCommands::ENGINE_RPM::pid;
-  assert(pid == message.pid());
-  auto rpm = rpmProvider_.get();
-  const auto data = DiagnosticCodec<DiagnosticCommands::ENGINE_RPM>::encode(rpm);
-  assert(data.size() == DiagnosticCommands::ENGINE_RPM::Encoding::byteCount);
-  return createResponse(target, mode, pid, data);
-}
-
-template <>
-Message EcuResponder::respondTo<DiagnosticCommands::VEHICLE_SPEED>(OBD2Message &message) {
-  // TODO: DRY
-  const Byte target = message.source();
-  // TODO: Don't hardcode + 0x40 here.
-  const Byte mode = DiagnosticCommands::VEHICLE_SPEED::mode + 0x40;
-  const Byte pid = DiagnosticCommands::VEHICLE_SPEED::pid;
-  assert(pid == message.pid());
-  const auto data =
-      DiagnosticCodec<DiagnosticCommands::VEHICLE_SPEED>::encode(speedProvider_.get());
-  assert(data.size() == DiagnosticCommands::VEHICLE_SPEED::Encoding::byteCount);
-  return createResponse(target, mode, pid, data);
 }
 
 Message EcuResponder::respondToInit(Message &message) {
