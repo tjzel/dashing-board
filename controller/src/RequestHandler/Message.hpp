@@ -37,7 +37,8 @@ struct OBD2Message {
   Message &message;
 };
 
-template <IDebugCommunicator TDebugCommunicator> void printMessage(const Message &message, TDebugCommunicator &debugComm) {
+template <IDebugCommunicator TDebugCommunicator>
+void printMessage(const Message &message, TDebugCommunicator &debugComm) {
   debugComm.print("    Format: ");
   debugComm.println(message.format);
   debugComm.print("    Target: ");
@@ -52,6 +53,7 @@ template <IDebugCommunicator TDebugCommunicator> void printMessage(const Message
   debugComm.println();
   debugComm.print("    Checksum: ");
   debugComm.println(message.checksum);
+  debugComm.println();
 }
 
 #endif // MESSAGE_HPP

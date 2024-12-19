@@ -2,8 +2,9 @@
 #define SERIAL_COMMUNICATOR_HPP
 
 #include <Arduino.h>
-#include <DiagnosticCommands.hpp>
 #include <HardwareSerial.h>
+
+#include <DiagnosticCommands.hpp>
 #include <ICommunicator.hpp>
 
 using Byte = uint8_t;
@@ -14,18 +15,22 @@ public:
   bool available();
   void write(const std::vector<Byte> &message);
   void write(Byte byte);
-  void fastInit();
+  void init();
+  HardwareSerial &sniffInit();
   void setOnNewData(std::function<void()> onNewData);
 
-  explicit SerialCommunicator(const uint serialNumber, const gpio_num_t, const gpio_num_t tx);
+  explicit SerialCommunicator(const uint serialNumber, const gpio_num_t rx, const gpio_num_t tx);
 
 private:
   static constexpr uint _baudRate = 10400;
+  // TODO: Make this configurable.
+  static constexpr ulong _requestCooldown = 60;
 
   uint _serialNumber;
   gpio_num_t _rx;
   gpio_num_t _tx;
   HardwareSerial _serial;
+  ulong _lastRequest = 0;
 };
 
 static_assert(ICommunicator<SerialCommunicator>);

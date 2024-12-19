@@ -19,7 +19,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 # Specify where to place all binary files (EXECUTABLEs and LIBRARYs)
 # set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-add_subdirectory(controller build)
+add_subdirectory(controller)
+add_subdirectory(controller/tests/controller)
 
 # # Assuming the target name is 'controller', adjust if it has different name
 # # get_target_property(controller controller LIBRARY_OUTPUT_DIRECTORY)
@@ -28,3 +29,4 @@ add_subdirectory(controller build)
 # ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib
 # RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
 # )
+enable_testing()

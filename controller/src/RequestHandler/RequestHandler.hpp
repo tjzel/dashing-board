@@ -124,6 +124,8 @@ DataFrame RequestHandler<TCommunicator, TDebugCommunicator>::getDataFrame() {
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 void RequestHandler<TCommunicator, TDebugCommunicator>::sniff() {
   while (!_stateReader.feed(comm_.read())) {
+    // TODO: This is ill-formed.
+    // TODO: Move sniffing to a separate class.
     ;
   }
   auto message = _stateReader.getMessage();

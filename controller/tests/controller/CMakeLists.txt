@@ -15,6 +15,7 @@ add_executable(controller-test)
 target_sources(controller-test PRIVATE main.cpp)
 target_link_libraries(controller-test controller GTest::gtest_main)
 target_compile_features(controller-test PUBLIC cxx_std_20)
+target_compile_options(controller-test PRIVATE "-Wno-unused-result")
 
 include(GoogleTest)
 gtest_discover_tests(controller-test)
