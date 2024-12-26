@@ -8,7 +8,8 @@ idf_component_register(
   INCLUDE_DIRS
   "."
   PRIV_REQUIRES
-  vfs fatfs
+  vfs
+  fatfs
   controller)
 
 fatfs_create_spiflash_image(storage data FLASH_IN_PROJECT)
