@@ -66,13 +66,24 @@ SerialCommunicator::SerialCommunicator(const uint serialNumber, const gpio_num_t
                                        const gpio_num_t tx)
     : _serialNumber(serialNumber), _rx(rx), _tx(tx), _serial(HardwareSerial(serialNumber)) {}
 
-void DebugSerialCommunicator::print(Byte byte) { _serial.print(byte, HEX); }
+void DebugSerialCommunicator::print(Byte byte) {
+  if (byte < 0x10) {
+    _serial.print('0');
+  }
+  _serial.print(byte, HEX);
+}
 
 void DebugSerialCommunicator::print(const std::string &str) { _serial.print(str.c_str()); }
 
-void DebugSerialCommunicator::println(Byte byte) { _serial.println(byte, HEX); }
+void DebugSerialCommunicator::println(Byte byte) {
+  print(byte);
+  println();
+}
 
-void DebugSerialCommunicator::println(const std::string &str) { _serial.println(str.c_str()); }
+void DebugSerialCommunicator::println(const std::string &str) {
+  _serial.println(str.c_str());
+  println();
+}
 
 void DebugSerialCommunicator::println() { _serial.println(); }
 
