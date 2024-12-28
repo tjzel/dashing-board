@@ -5,11 +5,13 @@
 #include <functional>
 #include <vector>
 
+static constexpr Byte ADDRESSING_MASK = 0b11000000;
+static constexpr Byte PHYSICAL_ADDRESSING = 0b10000000;
+static constexpr Byte FUNCTIONAL_ADDRESSING = 0b11000000;
+static constexpr Byte LENGTH_MASK = 0b00111111;
+
 static constexpr Byte ECU_ADDRESS = 0x33;
 static constexpr Byte CONTROLLER_ADDRESS = 0xf1;
-static constexpr Byte REQUEST_HEADER = 0xc0;
-static constexpr Byte RESPONSE_HEADER = 0x80;
-static constexpr Byte REQUEST_HEADER_MODE_MASK = 0xf0;
 
 template <class TCommunicator>
 concept ICommunicator =

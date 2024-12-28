@@ -15,10 +15,10 @@ constexpr auto analogSniffer = GPIO_NUM_26;
 
 SerialCommunicator serialCommunicator(sniffSerialNumber, sniffRx, sniffTx);
 DebugSerialCommunicator debugSerialCommunicator(Serial);
-// DigitalSniffer digitalSniffer(serialCommunicator, debugSerialCommunicator);
+DigitalSniffer digitalSniffer(serialCommunicator, debugSerialCommunicator);
 // BluetoothSerial SerialBT;
 
-RequestHandler requestHandler(serialCommunicator, debugSerialCommunicator);
+// RequestHandler requestHandler(serialCommunicator, debugSerialCommunicator);
 // EcuMock ecuMock{serialCommunicator, debugSerialCommunicator};
 
 void requestHandlerInit(
@@ -62,7 +62,7 @@ void setup() {
 }
 
 void loop() {
-  // digitalSniffer.sniff();
+  digitalSniffer.sniff();
 
   // delay(250);
   // debugSerialCommunicator.println("Requesting data frame");
@@ -75,7 +75,7 @@ void loop() {
   // debugSerialCommunicator.println("Data frame received in " + std::to_string(time2 - time) +
   // "ms"); debugSerialCommunicator.println(std::string{dataFrame});
 
-  requestHandler.sniff();
+  // requestHandler.sniff();
   // #region Analog sniffer
   // const auto read = analogRead(analogSniffer);
   // if (read < 2000) {

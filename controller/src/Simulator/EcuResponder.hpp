@@ -22,11 +22,11 @@ private:
   template <DiagnosticCommands::Command TCommand> Message respondTo(OBD2Message &message);
 
   // TODO: Require fast init as well.
-  Message respondToInit(Message &message);
+  static Message respondToInit(Message &message);
 
-  Message createResponse(Byte target, Byte mode, Byte pid, const std::vector<Byte> &data);
+  static Message createResponse(Byte target, Byte mode, Byte pid, const std::vector<Byte> &data);
 
-  Message createResponse(Byte target, const std::vector<Byte> &data);
+  static Message createResponse(Byte target, const std::vector<Byte> &data);
 
   std::map<CommandLiteral, bool> availability{
       {{DiagnosticCommands::ENGINE_RPM::value, true},
@@ -119,8 +119,7 @@ private:
 template <DiagnosticCommands::Command TCommand>
 Message EcuResponder::respondTo(OBD2Message &message) {
   const Byte target = message.source();
-  // TODO: Don't hardcode + 0x40 here.
-  const Byte mode = TCommand::mode + 0x40;
+  const Byte mode = DiagnosticCommands::RESPONSE_MODE;
   const Byte pid = TCommand::pid;
   assert(pid == message.pid());
   const auto data = getFromProvider<TCommand>();

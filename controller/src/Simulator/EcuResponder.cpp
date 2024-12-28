@@ -86,10 +86,9 @@ Message EcuResponder::respondToInit(Message &message) {
 
 Message EcuResponder::createResponse(const Byte target, const Byte mode, const Byte pid,
                                      const std::vector<Byte> &obd2Data) {
-  // TODO: DRY
   const Byte modeAndPidSize = 2;
   const Byte size = obd2Data.size() + modeAndPidSize;
-  const Byte format = RESPONSE_HEADER | size;
+  const Byte format = PHYSICAL_ADDRESSING | (size & LENGTH_MASK);
   const Byte source = ECU_ADDRESS;
 
   std::vector<Byte> data{mode, pid};
@@ -100,14 +99,9 @@ Message EcuResponder::createResponse(const Byte target, const Byte mode, const B
 }
 
 Message EcuResponder::createResponse(const Byte target, const std::vector<Byte> &data) {
-  // TODO: DRY
-  const Byte modeAndPidSize = 2;
-  const Byte size = data.size() + modeAndPidSize;
-  const Byte format = RESPONSE_HEADER | size;
+  const Byte size = data.size();
+  const Byte format = PHYSICAL_ADDRESSING | (size & LENGTH_MASK);
   const Byte source = ECU_ADDRESS;
-
-  // TODO: Fix this.
-  // assert(data.size() == size);
 
   return {format, target, source, data};
 }

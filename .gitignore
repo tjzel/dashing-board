@@ -27,3 +27,6 @@ build
 
 # gtest
 Testing
+
+# Python
+**/__pycache__
