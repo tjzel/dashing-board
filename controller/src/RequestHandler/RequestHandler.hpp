@@ -50,7 +50,8 @@ auto RequestHandler<TCommunicator, TDebugCommunicator>::get() ->
     }
   }
   const auto response = request(command);
-  const auto result = DiagnosticCodec<TCommand>::decode(response);
+  const auto data = std::span(response).subspan(2);
+  const auto result = DiagnosticCodec<TCommand>::decode(data);
   return result;
 }
 
@@ -61,17 +62,17 @@ void RequestHandler<TCommunicator, TDebugCommunicator>::loadAvailability() {
   // Something is off for the rest of those...
   // Probably asking ECU too fast.
   // _debugComm.println("Loading x203f");
-  // loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_20_3F>();
+  loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_20_3F>();
   // _debugComm.println("Loading x405f");
-  // loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_40_5F>();
+  loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_40_5F>();
   // _debugComm.println("Loading x607f");
-  // loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_60_7F>();
+  loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_60_7F>();
   // _debugComm.println("Loading x809f");
-  // loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_80_9F>();
+  loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_80_9F>();
   // _debugComm.println("Loading xa0bf");
-  // loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_A0_BF>();
+  loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_A0_BF>();
   // _debugComm.println("Loading xc0df");
-  // loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_C0_DF>();
+  loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_C0_DF>();
   // debugComm_.println("Done loading availability");
 }
 

@@ -8,7 +8,7 @@
 #include <vector>
 
 template <DiagnosticCommands::Command TCommand> struct DiagnosticCodec {
-  static auto decode(std::span<const Byte> /*message*/) -> typename TCommand::Encoding::ValueType {
+  static auto decode(std::span<const Byte> /*data*/) -> typename TCommand::Encoding::ValueType {
     throw std::runtime_error("No decoder found for command " + std::to_string(TCommand::mode) +
                              ":" + std::to_string(TCommand::pid));
   }
@@ -26,9 +26,7 @@ static_assert(std::is_same_v<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::Enc
 template <DiagnosticCommands::Command TCommand>
   requires std::is_same_v<typename TCommand::Encoding, Encodings::CommandAvailability>
 struct DiagnosticCodec<TCommand> {
-  static auto decode(const std::span<const Byte> message) ->
-      typename TCommand::Encoding::ValueType {
-    const auto data = message.subspan(2);
+  static auto decode(const std::span<const Byte> data) -> typename TCommand::Encoding::ValueType {
     std::map<CommandLiteral, bool> availability;
     const auto commandOffset = TCommand::pid + 1;
     auto byteOffset = 0;
@@ -47,8 +45,18 @@ struct DiagnosticCodec<TCommand> {
     return availability;
   }
 
-  static auto encode(const typename TCommand::Encoding::ValueType /*result*/) -> std::vector<Byte> {
-    throw std::runtime_error("Not implemented");
+  static auto
+  encode(const typename TCommand::Encoding::ValueType availability) -> std::vector<Byte> {
+    std::vector<Byte> encodedAvailability(4, 0);
+    const auto commandOffset = TCommand::pid;
+    for (const auto &[command, isAvailable] : availability) {
+      bool isCorrectSegment = command.pid > commandOffset && command.pid <= commandOffset + 0x20;
+      if (isAvailable && isCorrectSegment) {
+        int byteIndex = (command.pid - 1 - commandOffset) / 8;
+        encodedAvailability[byteIndex] += (1 << (7 - (command.pid - 1) % 8));
+      }
+    }
+    return encodedAvailability;
   }
 };
 
@@ -61,10 +69,9 @@ template <DiagnosticCommands::Command TCommand>
       typename TCommand::Encoding,
       Encodings::Identity<TCommand::Encoding::byteCount, typename TCommand::Encoding::ValueType>>
 struct DiagnosticCodec<TCommand> {
-  static auto decode(std::span<const Byte> message) ->
+  static auto decode(std::span<const Byte> data) ->
 
       typename TCommand::Encoding::ValueType {
-    const auto data = message.subspan(2);
     assert(data.size() == TCommand::Encoding::byteCount);
     typename TCommand::Encoding::ValueType result = 0;
     for (auto byte : data) {
@@ -75,7 +82,7 @@ struct DiagnosticCodec<TCommand> {
 
   static auto encode(typename TCommand::Encoding::ValueType result) -> std::vector<Byte> {
     std::vector<Byte> data(TCommand::Encoding::byteCount);
-    for (size_t i = 0; i < data.size(); i++) {
+    for (int i = data.size() - 1; i >= 0; i--) {
       data[i] = result % 256;
       result /= 256;
     }
@@ -122,9 +129,7 @@ template <DiagnosticCommands::Command TCommand>
                    TCommand::Encoding::Nominator, TCommand::Encoding::Denominator>,
                typename TCommand::Encoding>
 struct DiagnosticCodec<TCommand> {
-  static auto decode(const std::span<const Byte> message) ->
-      typename TCommand::Encoding::ValueType {
-    const auto data = message.subspan(2);
+  static auto decode(const std::span<const Byte> data) -> typename TCommand::Encoding::ValueType {
     assert(data.size() == TCommand::Encoding::byteCount);
     typename TCommand::Encoding::ValueType result = 0;
     for (auto byte : data) {

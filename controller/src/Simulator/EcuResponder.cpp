@@ -18,6 +18,30 @@ EcuInternalResponse EcuResponder::request(OBD2Message &message) {
     return {.hasResponse = true,
             .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>(message)};
   }
+  if (message.command() == DiagnosticCommands::COMMAND_AVAILABILITY_20_3F::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_20_3F>(message)};
+  }
+  if (message.command() == DiagnosticCommands::COMMAND_AVAILABILITY_40_5F::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_40_5F>(message)};
+  }
+  if (message.command() == DiagnosticCommands::COMMAND_AVAILABILITY_60_7F::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_60_7F>(message)};
+  }
+  if (message.command() == DiagnosticCommands::COMMAND_AVAILABILITY_80_9F::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_80_9F>(message)};
+  }
+  if (message.command() == DiagnosticCommands::COMMAND_AVAILABILITY_A0_BF::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_A0_BF>(message)};
+  }
+  if (message.command() == DiagnosticCommands::COMMAND_AVAILABILITY_C0_DF::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_C0_DF>(message)};
+  }
   if (message.command() == DiagnosticCommands::ENGINE_RPM::value) {
     return {.hasResponse = true, .response = respondTo<DiagnosticCommands::ENGINE_RPM>(message)};
   }

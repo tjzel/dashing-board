@@ -78,7 +78,6 @@ struct COMMAND_AVAILABILITY_00_1F : internal::PrefixedCommandAvailability<0x01, 
 struct ENGINE_LOAD : internal::CommandWithEncoding<0x01, 0x04, Encodings::Percentage<1>> {};
 struct ENGINE_RPM : internal::CommandWithEncoding<0x01, 0x0C, Encodings::MultiplyBy<2, int, 1, 4>> {
 };
-
 struct VEHICLE_SPEED : internal::CommandWithEncoding<0x01, 0x0D, Encodings::Identity<1, int>> {};
 struct THROTTLE_POSITION : internal::CommandWithEncoding<0x01, 0x11, Encodings::Percentage<1>> {};
 struct UPTIME : internal::CommandWithEncoding<0x01, 0x1F, Encodings::Identity<2, int>> {};
