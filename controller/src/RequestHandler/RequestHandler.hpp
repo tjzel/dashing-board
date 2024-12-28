@@ -225,7 +225,7 @@ template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 std::vector<Byte>
 RequestHandler<TCommunicator, TDebugCommunicator>::request(CommandLiteral command) {
   // TODO: Fix magic numbers.
-  Message message{0xc2, 0x33, 0xf1, {command.mode, command.pid}};
+  Message message{0xc2, 0x33, 0xf1, {DiagnosticCommands::REQUEST_MODE, command.pid}};
   comm_.write(std::vector<Byte>{message});
 
   // debugComm_.println("Request sent:");

@@ -9,13 +9,11 @@
 
 template <DiagnosticCommands::Command TCommand> struct DiagnosticCodec {
   static auto decode(std::span<const Byte> /*message*/) -> typename TCommand::Encoding::ValueType {
-    throw std::runtime_error("No decoder found for command " + std::to_string(TCommand::mode) +
-                             ":" + std::to_string(TCommand::pid));
+    throw std::runtime_error("No decoder found for command " + std::to_string(TCommand::pid));
   }
 
   static auto encode(const typename TCommand::Encoding::ValueType /*result*/) -> std::vector<Byte> {
-    throw std::runtime_error("No encoder found for command " + std::to_string(TCommand::mode) +
-                             ":" + std::to_string(TCommand::pid));
+    throw std::runtime_error("No encoder found for command " + std::to_string(TCommand::pid));
   }
 };
 
@@ -39,7 +37,7 @@ struct DiagnosticCodec<TCommand> {
           continue;
         }
         const Byte keyOffset = commandOffset + byteOffset + i;
-        const CommandLiteral key = {TCommand::mode, keyOffset};
+        const CommandLiteral key = {keyOffset};
         availability[key] = bit;
       }
       byteOffset += 8;

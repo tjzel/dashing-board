@@ -25,7 +25,7 @@ private:
   TDebugCommunicator &debugComm_;
   StateReader stateReader_{
       {// TODO: Fix magic number.
-       .isHeaderValid = [](int byte) { return (byte & REQUEST_HEADER_MODE_MASK) == 0xc0; },
+       .isHeaderValid = [](int byte) { return (byte & ADDRESSING_MASK) == FUNCTIONAL_ADDRESSING; },
        .isTargetValid = [](int byte) { return byte == ECU_ADDRESS; },
        .isSourceValid = [](int) { return true; },
        .getTimestamp = []() { return 0; }}};
