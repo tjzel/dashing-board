@@ -12,6 +12,15 @@
       "args": [],
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "build"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug server executable",
+      "program": "${workspaceFolder}/bin/server",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "build"
     }
   ]
 }

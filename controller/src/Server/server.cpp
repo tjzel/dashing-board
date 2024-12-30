@@ -1,20 +1,6 @@
-#include <Communicators.hpp>
-#include <DataFrame.hpp>
-#include <DataLink.hpp>
+#include <Simulator.hpp>
 #include <httplib.h>
 #include <sstream>
-
-struct Simulator {
-  DataLink dataLink{};
-  StdioDebugCommunicator debugCommunicator{};
-  RequestHandlerDataLinkCommunicator requestHandlerCommunicator{dataLink};
-  EcuMockDataLinkCommunicator ecuCommunicator{dataLink};
-  EcuMock<EcuMockDataLinkCommunicator, StdioDebugCommunicator> ecuMock{ecuCommunicator,
-                                                                       debugCommunicator};
-  RequestHandler<RequestHandlerDataLinkCommunicator, StdioDebugCommunicator> requestHandler{
-      requestHandlerCommunicator, debugCommunicator};
-  Simulator() { requestHandler.loadAvailability(); }
-};
 
 std::string DataFrameToJson(const DataFrame &dataFrame) {
   std::stringstream stream;
@@ -37,12 +23,15 @@ int main() {
   httplib::Server svr;
 
   Simulator simulator{};
+  std::mutex simulatorMutex;
 
   svr.Get("/", [&](const httplib::Request & /*req*/, httplib::Response &res) {
+    std::lock_guard<std::mutex> lock(simulatorMutex);
     auto dataFrame = simulator.requestHandler.getDataFrame();
     auto dataFrameJson = DataFrameToJson(dataFrame);
     res.set_content(dataFrameJson, "application/json");
   });
 
-  svr.listen("localhost", 1234);
+  const auto port = 1234;
+  svr.listen("localhost", port);
 }
