@@ -3,6 +3,8 @@ import { View, Text, StyleSheet } from "react-native";
 import * as ScreenOrientation from "expo-screen-orientation";
 import React from "react";
 import * as NavigationBar from "expo-navigation-bar";
+import { useBLE } from "../../hooks/useBLE";
+import { BleManager, Device } from "react-native-ble-plx";
 
 interface DataFrame {
   engineLoad: number;
@@ -20,8 +22,27 @@ export default function HomeScreen() {
   const [isLandscape, setLandscape] = useState(false);
   NavigationBar.setVisibilityAsync("hidden");
 
+  const {
+    allDevices,
+    connectedDevice,
+    connectToDevice,
+    color,
+    requestPermissions,
+    scanForPeripherals,
+  } = useBLE();
+
+
+  const scanForDevices = async () => {
+    const isPermissionsEnabled = await requestPermissions();
+    if (isPermissionsEnabled) {
+      scanForPeripherals();
+    }
+  };
+
+
   useEffect(() => {
     setLandscapeLeftOrientation();
+    scanForDevices();
     let job = -1;
     const action = () => {
       fetch("http://localhost:1234/")
@@ -33,7 +54,7 @@ export default function HomeScreen() {
         .catch((error) => console.log(error));
     };
     action();
-    return () => cancelAnimationFrame(job);
+    // return () => cancelAnimationFrame(job);
   }, []);
 
   const setLandscapeLeftOrientation = async () => {

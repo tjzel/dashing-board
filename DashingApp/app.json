@@ -38,13 +38,23 @@
       [
         "expo-font",
         {
-          "fonts": ["./assets/fonts/Droid 1997.otf"]
+          "fonts": [
+            "./assets/fonts/Droid 1997.otf"
+          ]
         }
       ],
       [
         "expo-screen-orientation",
         {
           "initialOrientation": "DEFAULT"
+        }
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": true,
+          "modes": ["peripheral", "central"],
+          "bluetoothAlwaysPermission": "Allow $(PRODUCT_NAME) to connect to bluetooth devices"
         }
       ]
     ],
