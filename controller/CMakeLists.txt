@@ -12,10 +12,3 @@ file(GLOB_RECURSE SOURCES src/RequestHandler/*.cpp src/Simulator/*.cpp src/Commu
 target_sources(controller PRIVATE ${SOURCES})
 
 target_compile_features(controller PUBLIC cxx_std_20)
-
-add_executable(server)
-target_link_libraries(server controller)
-target_include_directories(server PRIVATE src/Server)
-file(GLOB_RECURSE SERVER_SOURCES src/Server/*.cpp)
-target_sources(server PRIVATE ${SERVER_SOURCES})
-target_compile_features(server PUBLIC cxx_std_20)

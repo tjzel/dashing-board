@@ -3,14 +3,27 @@
 #include <EcuMock.hpp>
 #include <Parser.hpp>
 #include <RequestHandler.hpp>
-#include <Simulator.hpp>
 #include <gtest/gtest.h>
+#include <iostream>
 #include <vector>
 
 constexpr double MIN_DIFFERENCE = 100. / 255;
 #define EXPECT_IN_RANGE(VAL, EXPECTED)                                                             \
   EXPECT_GE((VAL), ((EXPECTED) - MIN_DIFFERENCE));                                                 \
   EXPECT_LE((VAL), ((EXPECTED) + MIN_DIFFERENCE))
+
+// TODO: Move Simulator to a separate file.
+struct Simulator {
+  DataLink dataLink{};
+  StdioDebugCommunicator debugCommunicator{};
+  RequestHandlerDataLinkCommunicator requestHandlerCommunicator{dataLink};
+  EcuMockDataLinkCommunicator ecuCommunicator{dataLink};
+  EcuMock<EcuMockDataLinkCommunicator, StdioDebugCommunicator> ecuMock{ecuCommunicator,
+                                                                       debugCommunicator};
+  RequestHandler<RequestHandlerDataLinkCommunicator, StdioDebugCommunicator> requestHandler{
+      requestHandlerCommunicator, debugCommunicator};
+  Simulator() { requestHandler.loadAvailability(); }
+};
 
 TEST(DiagnosticCommandsTest, HandlesPositiveResponse) {
   Simulator simulator{};
