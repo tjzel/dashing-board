@@ -4,7 +4,6 @@ idf_component_register(
   SRCS
   "main.cpp"
   "SerialCommunicator.cpp"
-  "DigitalSniffer.cpp"
   INCLUDE_DIRS
   "."
   PRIV_REQUIRES
@@ -12,4 +11,4 @@ idf_component_register(
   fatfs
   controller)
 
-fatfs_create_spiflash_image(storage data FLASH_IN_PROJECT)
+fatfs_create_spiflash_image(storage storage FLASH_IN_PROJECT)
