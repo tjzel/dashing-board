@@ -2,7 +2,7 @@
 #define MOCK_HANDLER_HPP
 
 #include <Arduino.h>
-#include <BluetoothSerial.h>
+#include <BLEDataServer.hpp>
 #include <Communicators.hpp>
 #include <DataFrame.hpp>
 #include <DataLink.hpp>
@@ -12,7 +12,7 @@
 #include <RequestHandler.hpp>
 #include <SerialCommunicator.hpp>
 
-BluetoothSerial serialBT;
+// BluetoothSerial serialBT;
 
 DebugSerialCommunicator debugSerialCommunicator(Serial);
 DataLink dataLink;
@@ -29,23 +29,29 @@ void requestHandlerInit(RequestHandler<TCommunicator, TDebugCommunicator> &reque
   requestHandler.printAvailableForDataFrame();
 }
 
+BLEDataServer *bleServer = nullptr;
+
 void setup() {
   const auto debugSerialBaudRate = 115200;
   Serial.begin(debugSerialBaudRate);
   while (!Serial) {
     // Wait for serial port to connect.
   };
+  debugSerialCommunicator.println();
   debugSerialCommunicator.println("debugSerialCommunicator ready");
 
-  requestHandlerInit(requestHandler);
+  bleServer = BLEDataServer::createServer();
+  debugSerialCommunicator.println("BLE server created");
 
-  serialBT.begin("DashingBoard");
+  requestHandlerInit(requestHandler);
+  debugSerialCommunicator.println("Request handler initialized");
 }
 
 void loop() {
-  auto dataFrame = requestHandler.getDataFrame();
+  auto &server = *bleServer;
 
-  serialBT.println(dataFrame.toJson().c_str());
+  auto dataFrame = requestHandler.getDataFrame();
+  server.update(dataFrame);
 }
 
 #endif // MOCK_HANDLER_HPP
