@@ -4,6 +4,7 @@ idf_component_register(
   SRCS
   "main.cpp"
   "SerialCommunicator.cpp"
+  "BLEDataServer.cpp"
   INCLUDE_DIRS
   "."
   PRIV_REQUIRES
