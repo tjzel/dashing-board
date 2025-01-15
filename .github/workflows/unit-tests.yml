@@ -14,7 +14,7 @@ jobs:
   unit-tests-check:
     runs-on: ubuntu-latest
     concurrency:
-      group: compilation-check-${{ github.ref }}
+      group: unit-tests-check-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - name: checkout
