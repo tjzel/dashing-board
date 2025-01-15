@@ -1,0 +1,39 @@
+name: Unit tests check
+on:
+  pull_request:
+  merge_group:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  unit-tests-check:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: compilation-check-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Set up Clang
+        uses: egor-tensin/setup-clang@v1
+        with:
+          version: latest
+          platform: x64
+
+      - name: Setup compilation
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+
+      - name: Compile
+        run: make
+
+      - name: Run unit tests
+        working-directory: build
+        run: ctest --output-on-failure
