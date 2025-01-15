@@ -6,4 +6,4 @@ clean:
 
 test:
 	@$(MAKE) -C build 
-	(cd build/build/tests/controller && ctest)
+	(cd build && ctest)

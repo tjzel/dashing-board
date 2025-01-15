@@ -6,6 +6,8 @@ struct DataFrame {
 
   explicit operator std::string() const;
 
+  [[nodiscard]] std::string toJson() const;
+
   template <class TNumeric> static bool isValid(TNumeric value) { return value >= 0; }
 
   double engineLoad;

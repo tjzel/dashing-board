@@ -11,7 +11,24 @@ DataFrame::operator std::string() const {
   isValid(uptime) && stream << "    Uptime: " << uptime << "\n";
   isValid(fuelLevel) && stream << "    Fuel level: " << fuelLevel << "\n";
   isValid(absoluteLoad) && stream << "    Absolute load: " << absoluteLoad << "\n";
-  isValid(relativeThrottlePosition) && stream << "    Relative throttle position: " << relativeThrottlePosition << "\n";
+  isValid(relativeThrottlePosition) &&
+      stream << "    Relative throttle position: " << relativeThrottlePosition << "\n";
   isValid(engineFuelRate) && stream << "    Engine fuel rate: " << engineFuelRate << "\n";
+  return stream.str();
+}
+
+std::string DataFrame::toJson() const {
+  std::stringstream stream;
+  stream << "{";
+  stream << "\"engineLoad\":" << engineLoad;
+  stream << ",\"engineRPM\":" << engineRPM;
+  stream << ",\"vehicleSpeed\":" << vehicleSpeed;
+  stream << ",\"throttlePosition\":" << throttlePosition;
+  stream << ",\"uptime\":" << uptime;
+  stream << ",\"fuelLevel\":" << fuelLevel;
+  stream << ",\"absoluteLoad\":" << absoluteLoad;
+  stream << ",\"relativeThrottlePosition\":" << relativeThrottlePosition;
+  stream << ",\"engineFuelRate\":" << engineFuelRate;
+  stream << "}";
   return stream.str();
 }

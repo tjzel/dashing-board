@@ -2,12 +2,26 @@
 #define SERIAL_COMMUNICATOR_HPP
 
 #include <Arduino.h>
-#include <HardwareSerial.h>
-
 #include <DiagnosticCommands.hpp>
+#include <HardwareSerial.h>
 #include <ICommunicator.hpp>
 
 using Byte = uint8_t;
+
+class DebugSerialCommunicator {
+public:
+  void print(Byte byte);
+  void print(const std::string &str);
+  void println(Byte byte);
+  void println(const std::string &str);
+  void println();
+  explicit DebugSerialCommunicator(HardwareSerial &serial);
+
+private:
+  HardwareSerial &_serial;
+};
+
+static_assert(IDebugCommunicator<DebugSerialCommunicator>);
 
 class SerialCommunicator {
 public:
@@ -19,35 +33,23 @@ public:
   HardwareSerial &sniffInit();
   void setOnNewData(std::function<void()> onNewData);
 
-  explicit SerialCommunicator(const uint serialNumber, const gpio_num_t rx, const gpio_num_t tx);
+  explicit SerialCommunicator(const uint serialNumber, const gpio_num_t rx, const gpio_num_t tx,
+                              DebugSerialCommunicator &debugComm);
 
 private:
   static constexpr uint _baudRate = 10400;
   // TODO: Make this configurable.
-  static constexpr ulong _requestCooldown = 60;
+  static constexpr ulong _requestCooldown = 110;
 
   uint _serialNumber;
   gpio_num_t _rx;
   gpio_num_t _tx;
   HardwareSerial _serial;
   ulong _lastRequest = 0;
+
+  DebugSerialCommunicator &debugComm_;
 };
 
 static_assert(ICommunicator<SerialCommunicator>);
-
-class DebugSerialCommunicator {
-public:
-  void print(Byte byte);
-  void print(const std::string &str);
-  void println(Byte byte);
-  void println(const std::string &str);
-  void println();
-  explicit DebugSerialCommunicator(Stream &serial);
-
-private:
-  Stream &_serial;
-};
-
-static_assert(IDebugCommunicator<DebugSerialCommunicator>);
 
 #endif // SERIAL_COMMUNICATOR_HPP
