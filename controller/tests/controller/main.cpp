@@ -1,10 +1,7 @@
-#include <Communicators.hpp>
-#include <DiagnosticCommands.hpp>
-#include <EcuMock.hpp>
-#include <Parser.hpp>
-#include <RequestHandler.hpp>
-#include <Simulator.hpp>
 #include <gtest/gtest.h>
+
+#include <DiagnosticCommands.hpp>
+#include <Simulator.hpp>
 #include <vector>
 
 constexpr double MIN_DIFFERENCE = 100. / 255;

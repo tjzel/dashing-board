@@ -12,5 +12,7 @@ int DataProvider::get() {
   return value;
 }
 
-DataProvider::DataProvider(int initialValue, int step, int sign, int bottomThreshold, int topThreshold)
-    : value_(initialValue), step_(step), sign_(sign), bottomThreshold_(bottomThreshold), topThreshold_(topThreshold) {}
+DataProvider::DataProvider(int initialValue, int step, int sign, int bottomThreshold,
+                           int topThreshold)
+    : value_(initialValue), step_(step), sign_(sign), bottomThreshold_(bottomThreshold),
+      topThreshold_(topThreshold) {}
