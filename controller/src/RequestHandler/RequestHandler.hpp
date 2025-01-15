@@ -57,23 +57,21 @@ auto RequestHandler<TCommunicator, TDebugCommunicator>::get() ->
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 void RequestHandler<TCommunicator, TDebugCommunicator>::loadAvailability() {
-  // debugComm_.println("Loading x001f");
+  debugComm_.println("Loading x001f");
   loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>();
-  // Something is off for the rest of those...
-  // Probably asking ECU too fast.
-  // _debugComm.println("Loading x203f");
+  debugComm_.println("Loading x203f");
   loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_20_3F>();
-  // _debugComm.println("Loading x405f");
+  debugComm_.println("Loading x405f");
   loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_40_5F>();
-  // _debugComm.println("Loading x607f");
+  debugComm_.println("Loading x607f");
   loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_60_7F>();
-  // _debugComm.println("Loading x809f");
+  debugComm_.println("Loading x809f");
   loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_80_9F>();
-  // _debugComm.println("Loading xa0bf");
+  debugComm_.println("Loading xa0bf");
   loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_A0_BF>();
-  // _debugComm.println("Loading xc0df");
+  debugComm_.println("Loading xc0df");
   loadAvailabilityForCommand<DiagnosticCommands::COMMAND_AVAILABILITY_C0_DF>();
-  // debugComm_.println("Done loading availability");
+  debugComm_.println("Done loading availability");
 }
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
@@ -176,32 +174,34 @@ bool RequestHandler<TCommunicator, TDebugCommunicator>::initializeCommunication(
   // Temporary. Wait for the ECU to be ready.
   // delay(50);
 
-  debugComm_.println("Requesting timing data");
+  // debugComm_.println("Requesting timing data");
 
-  Message timingCurrentRequest{0xc2, 0x33, 0xf1, {0x02}};
+  // Message timingCurrentRequest{0xc2, 0x33, 0xf1, {0x02}};
 
-  comm_.write(std::vector<Byte>{timingCurrentRequest});
+  // comm_.write(std::vector<Byte>{timingCurrentRequest});
 
-  while (!_stateReader.feed(comm_.read())) {
-    ;
-  }
-  auto timingCurrentResponse = _stateReader.getMessage();
+  // // TODO: State reader must not contain message payload logic.
 
-  debugComm_.println("Timing data:");
+  // while (!_stateReader.feed(comm_.read())) {
+  //   ;
+  // }
+  // auto timingCurrentResponse = _stateReader.getMessage();
 
-  printMessage(timingCurrentResponse, debugComm_);
+  // debugComm_.println("Timing data:");
 
-  // delay(50);
+  // printMessage(timingCurrentResponse, debugComm_);
 
-  Message timingLimitsRequest{0xc2, 0x33, 0xf1, {0x00}};
+  // // delay(50);
 
-  comm_.write(std::vector<Byte>{timingLimitsRequest});
+  // Message timingLimitsRequest{0xc2, 0x33, 0xf1, {0x00}};
 
-  while (!_stateReader.feed(comm_.read())) {
-    ;
-  }
-  auto timingLimitsResponse = _stateReader.getMessage();
-  printMessage(timingLimitsResponse, debugComm_);
+  // comm_.write(std::vector<Byte>{timingLimitsRequest});
+
+  // while (!_stateReader.feed(comm_.read())) {
+  //   ;
+  // }
+  // auto timingLimitsResponse = _stateReader.getMessage();
+  // printMessage(timingLimitsResponse, debugComm_);
 
   // OG Car response:
   // Format: 83

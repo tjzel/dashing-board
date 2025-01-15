@@ -1,4 +1,3 @@
-#include <HardwareSerial.h>
 #include <SerialCommunicator.hpp>
 
 int SerialCommunicator::read(const size_t timeout) {
@@ -18,14 +17,25 @@ bool SerialCommunicator::available() { return _serial.available(); }
 void SerialCommunicator::write(const std::vector<Byte> &message) {
   // TODO: This is terrible. This should use a proper queue instead
   // and note that it doesn't guard single byte writes.
+  // debugComm_.println("Elapsed: ");
+  // std::string elapsed = std::to_string(millis() - _lastRequest);
+  // debugComm_.println(elapsed);
   if (millis() - _lastRequest < _requestCooldown) {
-    delay(millis() - _lastRequest);
+    delay(_requestCooldown - millis() + _lastRequest);
   }
   _lastRequest = millis();
+  // debugComm_.println("Sending: ");
+  // for (auto byte : message) {
+  //   debugComm_.print(byte);
+  // };
+  // debugComm_.println();
 
   for (auto byte : message) {
     _serial.write(byte);
   };
+
+  // debugComm_.println("Sent");
+
   for (auto byte : message) {
     read();
   };
@@ -63,8 +73,9 @@ HardwareSerial &SerialCommunicator::sniffInit() {
 void SerialCommunicator::setOnNewData(std::function<void()> /*onNewData*/) {}
 
 SerialCommunicator::SerialCommunicator(const uint serialNumber, const gpio_num_t rx,
-                                       const gpio_num_t tx)
-    : _serialNumber(serialNumber), _rx(rx), _tx(tx), _serial(HardwareSerial(serialNumber)) {}
+                                       const gpio_num_t tx, DebugSerialCommunicator &debugComm)
+    : _serialNumber(serialNumber), _rx(rx), _tx(tx), _serial(HardwareSerial(serialNumber)),
+      debugComm_(debugComm) {}
 
 void DebugSerialCommunicator::print(Byte byte) {
   if (byte < 0x10) {
@@ -87,4 +98,4 @@ void DebugSerialCommunicator::println(const std::string &str) {
 
 void DebugSerialCommunicator::println() { _serial.println(); }
 
-DebugSerialCommunicator::DebugSerialCommunicator(Stream &serial) : _serial(serial) {}
+DebugSerialCommunicator::DebugSerialCommunicator(HardwareSerial &serial) : _serial(serial) {}
