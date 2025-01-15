@@ -113,7 +113,7 @@ export function useBLE() {
 
       if (
         device &&
-        (device.localName === "Arduino" || device.name === "Arduino")
+        (device.localName === "DashingBoard" || device.name === "DashingBoard")
       ) {
         setAllDevices((prevState: Device[]) => {
           if (!isDuplicteDevice(prevState, device)) {
@@ -121,6 +121,13 @@ export function useBLE() {
           }
           return prevState;
         });
+        // device.connect();
+        // console.log(device.serviceData);
+        // console.log(device.serviceUUIDs);
+        // console.log(device.name);
+        // device.cancelConnection();
+        // device.discoverAllServicesAndCharacteristics();
+        // device.connect();
       }
     });
 
