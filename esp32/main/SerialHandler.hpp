@@ -2,10 +2,10 @@
 #define SERIAL_HANDLER_HPP
 
 #include <Arduino.h>
+#include <BLEDataServer.hpp>
 #include <BluetoothSerial.h>
 #include <Communicators.hpp>
 #include <DiagnosticCommands.hpp>
-#include <DigitalSniffer.hpp>
 #include <HardwareSerial.h>
 #include <RequestHandler.hpp>
 #include <SerialCommunicator.hpp>
@@ -20,7 +20,6 @@ SerialCommunicator serialCommunicator(serialCommunicatorNumber, serialCommunicat
                                       serialCommunicatorTx, debugSerialCommunicator);
 
 RequestHandler requestHandler(serialCommunicator, debugSerialCommunicator);
-BluetoothSerial serialBT;
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 void requestHandlerInit(RequestHandler<TCommunicator, TDebugCommunicator> &requestHandler) {
@@ -33,13 +32,16 @@ void requestHandlerInit(RequestHandler<TCommunicator, TDebugCommunicator> &reque
     debugSerialCommunicator.println("Retrying ECU initialization");
     requestHandler.initializeCommunication();
   };
-  delay(100);
+  // TODO: Fix this delay.
+  delay(200);
 
   requestHandler.loadAvailability();
   debugSerialCommunicator.println("Availability loaded");
   requestHandler.printAvailableCommands();
   requestHandler.printAvailableForDataFrame();
 }
+
+BLEDataServer *bleServer = nullptr;
 
 void setup() {
 
@@ -50,14 +52,18 @@ void setup() {
   };
   debugSerialCommunicator.println("debugSerialCommunicator ready");
 
-  requestHandlerInit(requestHandler);
+  bleServer = BLEDataServer::createServer();
+  debugSerialCommunicator.println("BLE server ready");
 
-  serialBT.begin("DashingBoard");
+  requestHandlerInit(requestHandler);
+  debugSerialCommunicator.println("Request handler ready");
 }
 
 void loop() {
+  auto &server = *bleServer;
   auto dataFrame = requestHandler.getDataFrame();
-  serialBT.println(dataFrame.toJson().c_str());
+  debugSerialCommunicator.println(dataFrame.toJson().c_str());
+  server.update(dataFrame);
 }
 
 #endif // SERIAL_HANDLER_HPP
