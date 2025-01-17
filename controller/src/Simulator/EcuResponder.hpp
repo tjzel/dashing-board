@@ -2,6 +2,7 @@
 #define ECU_RESPONDER_HPP
 
 #include <DataProvider.hpp>
+#include <DataSources.hpp>
 #include <DiagnosticCommands.hpp>
 #include <Message.hpp>
 #include <Parser.hpp>
@@ -13,10 +14,11 @@ struct EcuInternalResponse {
   Message response;
 };
 
-class EcuResponder {
+template <IDataProviderManager TDataProviderManager> class EcuResponder {
 public:
   EcuInternalResponse request(Message &message);
   EcuInternalResponse request(OBD2Message &message);
+  explicit EcuResponder(TDataProviderManager &dataSource);
 
 private:
   template <DiagnosticCommands::Command TCommand> Message respondTo(OBD2Message &message);
@@ -27,6 +29,8 @@ private:
   static Message createResponse(Byte target, Byte mode, Byte pid, const std::vector<Byte> &data);
 
   static Message createResponse(Byte target, const std::vector<Byte> &data);
+
+  TDataProviderManager dataProviderManager_;
 
   std::map<CommandLiteral, bool> availability{
       {{DiagnosticCommands::ENGINE_RPM::value, true},
@@ -68,38 +72,10 @@ private:
     if constexpr (std::is_same_v<TCommand, DiagnosticCommands::COMMAND_AVAILABILITY_C0_DF>) {
       return DiagnosticCodec<DiagnosticCommands::COMMAND_AVAILABILITY_C0_DF>::encode(availability);
     }
-    if constexpr (std::is_same_v<TCommand, DiagnosticCommands::ENGINE_RPM>) {
-      return DiagnosticCodec<DiagnosticCommands::ENGINE_RPM>::encode(rpmProvider_.get());
-    }
-    if constexpr (std::is_same_v<TCommand, DiagnosticCommands::VEHICLE_SPEED>) {
-      return DiagnosticCodec<DiagnosticCommands::VEHICLE_SPEED>::encode(speedProvider_.get());
-    }
-    if constexpr (std::is_same_v<TCommand, DiagnosticCommands::ENGINE_LOAD>) {
-      return DiagnosticCodec<DiagnosticCommands::ENGINE_LOAD>::encode(engineLoadProvider_.get());
-    }
-    if constexpr (std::is_same_v<TCommand, DiagnosticCommands::THROTTLE_POSITION>) {
-      return DiagnosticCodec<DiagnosticCommands::THROTTLE_POSITION>::encode(
-          throttlePositionProvider_.get());
-    }
-    if constexpr (std::is_same_v<TCommand, DiagnosticCommands::UPTIME>) {
-      return DiagnosticCodec<DiagnosticCommands::UPTIME>::encode(uptimeProvider_.get());
-    }
-    if constexpr (std::is_same_v<TCommand, DiagnosticCommands::FUEL_LEVEL>) {
-      return DiagnosticCodec<DiagnosticCommands::FUEL_LEVEL>::encode(fuelLevelProvider_.get());
-    }
-    if constexpr (std::is_same_v<TCommand, DiagnosticCommands::ABSOLUTE_LOAD>) {
-      return DiagnosticCodec<DiagnosticCommands::ABSOLUTE_LOAD>::encode(
-          absoluteLoadProvider_.get());
-    }
-    if constexpr (std::is_same_v<TCommand, DiagnosticCommands::RELATIVE_THROTTLE_POSITION>) {
-      return DiagnosticCodec<DiagnosticCommands::RELATIVE_THROTTLE_POSITION>::encode(
-          relativeThrottlePositionProvider_.get());
-    }
-    if constexpr (std::is_same_v<TCommand, DiagnosticCommands::ENGINE_FUEL_RATE>) {
-      return DiagnosticCodec<DiagnosticCommands::ENGINE_FUEL_RATE>::encode(
-          engineFuelRateProvider_.get());
-    }
-    throw std::runtime_error("Not implemented");
+
+    return DiagnosticCodec<TCommand>::encode(dataProviderManager_.template get<TCommand>());
+
+    // throw std::runtime_error("Not implemented");
   }
 
   // TODO: Don't hardcode it here.
@@ -116,8 +92,9 @@ private:
 
 /* #region Implementation */
 
+template <IDataProviderManager TDataProviderManager>
 template <DiagnosticCommands::Command TCommand>
-Message EcuResponder::respondTo(OBD2Message &message) {
+Message EcuResponder<TDataProviderManager>::respondTo(OBD2Message &message) {
   const Byte target = message.source();
   const Byte mode = DiagnosticCommands::RESPONSE_MODE;
   const Byte pid = TCommand::pid;
@@ -125,6 +102,118 @@ Message EcuResponder::respondTo(OBD2Message &message) {
   const auto data = getFromProvider<TCommand>();
   assert(data.size() == TCommand::Encoding::byteCount);
   return createResponse(target, mode, pid, data);
+}
+
+template <IDataProviderManager TDataProviderManager>
+EcuResponder<TDataProviderManager>::EcuResponder(TDataProviderManager &dataSource)
+    : dataProviderManager_({dataSource}) {}
+
+template <IDataProviderManager TDataProviderManager>
+EcuInternalResponse EcuResponder<TDataProviderManager>::request(Message &message) {
+  if (message.isInitMessage()) {
+    return {.hasResponse = true, .response = respondToInit(message)};
+  }
+  // TODO: Use mock message instead.
+  return {.hasResponse = false, .response = {0x00, 0x00, 0x00, {}}};
+}
+
+template <IDataProviderManager TDataProviderManager>
+EcuInternalResponse EcuResponder<TDataProviderManager>::request(OBD2Message &message) {
+  if (message.command() == DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_00_1F>(message)};
+  }
+  if (message.command() == DiagnosticCommands::COMMAND_AVAILABILITY_20_3F::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_20_3F>(message)};
+  }
+  if (message.command() == DiagnosticCommands::COMMAND_AVAILABILITY_40_5F::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_40_5F>(message)};
+  }
+  if (message.command() == DiagnosticCommands::COMMAND_AVAILABILITY_60_7F::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_60_7F>(message)};
+  }
+  if (message.command() == DiagnosticCommands::COMMAND_AVAILABILITY_80_9F::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_80_9F>(message)};
+  }
+  if (message.command() == DiagnosticCommands::COMMAND_AVAILABILITY_A0_BF::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_A0_BF>(message)};
+  }
+  if (message.command() == DiagnosticCommands::COMMAND_AVAILABILITY_C0_DF::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::COMMAND_AVAILABILITY_C0_DF>(message)};
+  }
+  if (message.command() == DiagnosticCommands::ENGINE_RPM::value) {
+    return {.hasResponse = true, .response = respondTo<DiagnosticCommands::ENGINE_RPM>(message)};
+  }
+  if (message.command() == DiagnosticCommands::VEHICLE_SPEED::value) {
+    return {.hasResponse = true, .response = respondTo<DiagnosticCommands::VEHICLE_SPEED>(message)};
+  }
+  if (message.command() == DiagnosticCommands::ENGINE_LOAD::value) {
+    return {.hasResponse = true, .response = respondTo<DiagnosticCommands::ENGINE_LOAD>(message)};
+  }
+  if (message.command() == DiagnosticCommands::THROTTLE_POSITION::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::THROTTLE_POSITION>(message)};
+  }
+  if (message.command() == DiagnosticCommands::UPTIME::value) {
+    return {.hasResponse = true, .response = respondTo<DiagnosticCommands::UPTIME>(message)};
+  }
+  if (message.command() == DiagnosticCommands::FUEL_LEVEL::value) {
+    return {.hasResponse = true, .response = respondTo<DiagnosticCommands::FUEL_LEVEL>(message)};
+  }
+  if (message.command() == DiagnosticCommands::ABSOLUTE_LOAD::value) {
+    return {.hasResponse = true, .response = respondTo<DiagnosticCommands::ABSOLUTE_LOAD>(message)};
+  }
+  if (message.command() == DiagnosticCommands::RELATIVE_THROTTLE_POSITION::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::RELATIVE_THROTTLE_POSITION>(message)};
+  }
+  if (message.command() == DiagnosticCommands::ENGINE_FUEL_RATE::value) {
+    return {.hasResponse = true,
+            .response = respondTo<DiagnosticCommands::ENGINE_FUEL_RATE>(message)};
+  }
+
+  // TODO: Use mock message instead.
+  return {.hasResponse = false, .response = {0x00, 0x00, 0x00, {}}};
+}
+
+template <IDataProviderManager TDataProviderManager>
+Message EcuResponder<TDataProviderManager>::respondToInit(Message &message) {
+  // TODO: Don't hardcode it here.
+  // 0x83 0xf1 0x11 0xc1 0x8f 0xef 0xc4
+  const std::vector<Byte> initOkData{0xc1, 0x8f, 0xef};
+  return createResponse(message.source, initOkData);
+}
+
+template <IDataProviderManager TDataProviderManager>
+Message EcuResponder<TDataProviderManager>::createResponse(const Byte target, const Byte mode,
+                                                           const Byte pid,
+                                                           const std::vector<Byte> &obd2Data) {
+  const Byte modeAndPidSize = 2;
+  const Byte size = obd2Data.size() + modeAndPidSize;
+  const Byte format = PHYSICAL_ADDRESSING | (size & LENGTH_MASK);
+  const Byte source = ECU_ADDRESS;
+
+  std::vector<Byte> data{mode, pid};
+  data.insert(data.end(), obd2Data.begin(), obd2Data.end());
+  assert(data.size() == size);
+
+  return {format, target, source, data};
+}
+
+template <IDataProviderManager TDataProviderManager>
+Message EcuResponder<TDataProviderManager>::createResponse(const Byte target,
+                                                           const std::vector<Byte> &data) {
+  const Byte size = data.size();
+  const Byte format = PHYSICAL_ADDRESSING | (size & LENGTH_MASK);
+  const Byte source = ECU_ADDRESS;
+
+  return {format, target, source, data};
 }
 
 /* #endregion Implementation */

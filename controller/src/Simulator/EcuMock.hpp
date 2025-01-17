@@ -2,6 +2,7 @@
 #define ECU_MOCK_HPP
 
 #include <DataProvider.hpp>
+#include <DataSources.hpp>
 #include <DiagnosticCommands.hpp>
 #include <EcuResponder.hpp>
 #include <ICommunicator.hpp>
@@ -12,11 +13,14 @@
 #include <cassert>
 
 /* #region Declaration */
-template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator> class EcuMock {
+template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator,
+          IDataProviderManager TDataProviderManager>
+class EcuMock {
 public:
   void inputArrivedHandler();
 
-  explicit EcuMock(TCommunicator &comm, TDebugCommunicator &debugComm);
+  explicit EcuMock(TCommunicator &comm, TDebugCommunicator &debugComm,
+                   TDataProviderManager &dataSource);
 
 private:
   void handleInput();
@@ -24,32 +28,34 @@ private:
   TCommunicator &comm_;
   TDebugCommunicator &debugComm_;
   StateReader stateReader_{
-      {// TODO: Fix magic number.
-       .isHeaderValid = [](int byte) { return (byte & ADDRESSING_MASK) == FUNCTIONAL_ADDRESSING; },
+      {.isHeaderValid = [](int byte) { return (byte & ADDRESSING_MASK) == FUNCTIONAL_ADDRESSING; },
        .isTargetValid = [](int byte) { return byte == ECU_ADDRESS; },
        .isSourceValid = [](int) { return true; },
        .getTimestamp = []() { return 0; }}};
-  EcuResponder ecuResponder_{};
+  EcuResponder<TDataProviderManager> ecuResponder_;
 };
 /* #endregion Declaration */
 /* #region Implementation */
 
-template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
-void EcuMock<TCommunicator, TDebugCommunicator>::inputArrivedHandler() {
+template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator,
+          IDataProviderManager TDataProviderManager>
+void EcuMock<TCommunicator, TDebugCommunicator, TDataProviderManager>::inputArrivedHandler() {
   while (comm_.available()) {
     handleInput();
   }
 };
 
-template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
-EcuMock<TCommunicator, TDebugCommunicator>::EcuMock(TCommunicator &comm,
-                                                    TDebugCommunicator &debugComm)
-    : comm_(comm), debugComm_(debugComm) {
+template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator,
+          IDataProviderManager TDataProviderManager>
+EcuMock<TCommunicator, TDebugCommunicator, TDataProviderManager>::EcuMock(
+    TCommunicator &comm, TDebugCommunicator &debugComm, TDataProviderManager &dataSource)
+    : comm_(comm), debugComm_(debugComm), ecuResponder_({dataSource}) {
   comm_.setOnNewData([&]() { inputArrivedHandler(); });
 }
 
-template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
-void EcuMock<TCommunicator, TDebugCommunicator>::handleInput() {
+template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator,
+          IDataProviderManager TDataProviderManager>
+void EcuMock<TCommunicator, TDebugCommunicator, TDataProviderManager>::handleInput() {
   auto byte = comm_.read();
   if (byte == -1 || !stateReader_.feed(byte)) {
     return;
