@@ -1,20 +1,9 @@
 #include <Communicators.hpp>
 #include <DataFrame.hpp>
 #include <DataLink.hpp>
+#include <Simulator.hpp>
 #include <httplib.h>
 #include <sstream>
-
-struct Simulator {
-  DataLink dataLink{};
-  StdioDebugCommunicator debugCommunicator{};
-  RequestHandlerDataLinkCommunicator requestHandlerCommunicator{dataLink};
-  EcuMockDataLinkCommunicator ecuCommunicator{dataLink};
-  EcuMock<EcuMockDataLinkCommunicator, StdioDebugCommunicator> ecuMock{ecuCommunicator,
-                                                                       debugCommunicator};
-  RequestHandler<RequestHandlerDataLinkCommunicator, StdioDebugCommunicator> requestHandler{
-      requestHandlerCommunicator, debugCommunicator};
-  Simulator() { requestHandler.loadAvailability(); }
-};
 
 std::string DataFrameToJson(const DataFrame &dataFrame) {
   std::stringstream stream;

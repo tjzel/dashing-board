@@ -8,37 +8,61 @@ import { useBleController, type DataFrame } from "../../hooks/useBleController";
 export default function HomeScreen() {
   const [dataFrame, setDataFrame] = useState<DataFrame | null>(null);
   const [, setLandscape] = useState(false);
-  const bleController = useBleController();
+  const [isMirrorView, setMirrorView] = useState(true);
+  // const bleController = useBleController();
 
   useEffect(() => {
+    const job = {id: -1}
+
+    function action() {
+      fetch("http://localhost:1234").then((result) => 
+        result.json()
+      ).then((data) => {
+        setDataFrame(data);
+        // console.log(data);
+        // job.id = requestAnimationFrame(action);
+        job.id = setTimeout(action, 100);
+      }).catch((error) => {
+        console.log(error);
+      });
+    }
+
+    action();
     NavigationBar.setVisibilityAsync("hidden");
     setLandscapeLeftOrientation();
-    bleController.requestPermissions();
+    // bleController.requestPermissions();
 
     return () => {
-      bleController.disconnect();
+      // bleController.disconnect();
+      // cancelAnimationFrame(job.id);
+      clearTimeout(job.id);
     };
   }, []);
 
   return (
     <View style={styles.container}>
       <View style={styles.innerContainer}>
-        <View style={styles.valuesColumn}>
-          <Text style={[styles.styledText, styles.speedValueText]}>
+        <View style={[styles.valuesColumn, isMirrorView && styles.mirrorValuesColumn]}>
+          <Text style={[styles.styledText, styles.speedValueText, isMirrorView && styles.mirrorView]}>
             {dataFrame?.vehicleSpeed}
           </Text>
         </View>
-        <View style={styles.unitsColumn}>
-          <Text style={[styles.styledText, styles.unitsText]}>km/h</Text>
+        <View style={[styles.unitsColumn, isMirrorView && styles.mirrorUnitsColumn]}>
+          <Text style={[styles.styledText, styles.unitsText, isMirrorView && styles.mirrorView]}>km/h</Text>
+          <Button
+            title="Switch"
+            // onPress={() => bleController.connect(setDataFrame)}
+            onPress={() => setMirrorView(!isMirrorView)}
+          />
         </View>
-        <View style={styles.valuesColumn}>
-          <Text style={[styles.styledText, styles.rpmValueText]}>
+        <View style={[styles.valuesColumn, isMirrorView && styles.mirrorValuesColumn]}>
+          <Text style={[styles.styledText, styles.rpmValueText, isMirrorView && styles.mirrorView]}>
             {dataFrame?.engineRPM}
           </Text>
         </View>
-        <View style={styles.unitsColumn}>
-          <Text style={[styles.styledText, styles.unitsText]}>rpm</Text>
-          <Button
+        <View style={[styles.unitsColumn, isMirrorView && styles.mirrorUnitsColumn]}>
+          <Text style={[styles.styledText, styles.unitsText, isMirrorView && styles.mirrorView]}>rpm</Text>
+          {/* <Button
             title="Connect"
             onPress={() => bleController.connect(setDataFrame)}
           />
@@ -46,7 +70,7 @@ export default function HomeScreen() {
             {bleController.connectedDevice
               ? "Device connected"
               : "No device connected"}
-          </Text>
+          </Text> */}
         </View>
       </View>
     </View>
@@ -73,10 +97,17 @@ const styles = StyleSheet.create({
   },
   valuesColumn: {
     flex: 2,
-    justifyContent: "flex-start",
+    justifyContent: "flex-end",
     alignItems: "flex-end",
   },
   unitsColumn: {
+    justifyContent: "flex-end",
+  },
+  mirrorValuesColumn: {
+    justifyContent: "flex-start",
+    alignItems: "flex-end",
+  },
+  mirrorUnitsColumn: {
     justifyContent: "flex-start",
   },
   styledText: {
@@ -85,6 +116,10 @@ const styles = StyleSheet.create({
     fontFamily: "Droid 1997",
     textAlignVertical: "bottom",
     paddingBottom: 75,
+    // transform: 
+    // [{ scaleY: -1 }],
+  },
+  mirrorView: {
     transform: [{ scaleY: -1 }],
   },
   speedValueText: {
@@ -102,4 +137,5 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 20,
   },
+
 });
