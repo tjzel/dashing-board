@@ -52,18 +52,7 @@ BLEDataServer *BLEDataServer::createServer() {
   service->start();
   server->getAdvertising()->start();
 
-  return new BLEDataServer{*server,
-                           *updateCharacteristic,
-                           *engineLoadCharacteristic,
-                           *engineRpmCharacteristic,
-                           *vehicleSpeedCharacteristic,
-                           *throttlePositionCharacteristic,
-                           *uptimeCharacteristic,
-                           *fuelLevelCharacteristic,
-                           *absoluteLoadCharacteristic,
-                           *relativeThrottlePositionCharacteristic,
-                           *engineFuelRateCharacteristic,
-                           *jsonCharacteristic};
+  return new BLEDataServer{*server, *jsonCharacteristic};
 }
 
 void BLEDataServer::update(const DataFrame &data) {

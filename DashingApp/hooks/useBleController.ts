@@ -15,16 +15,15 @@ export interface DataFrame {
   engineFuelRate: number;
 }
 
-const DATA_SERVICE_UUID = "19b10000-e8f2-537e-4f6c-d104768a1214";
-const COLOR_CHARACTERISTIC_UUID = "19b10001-e8f2-537e-4f6c-d104768a1217";
-
 const bleManager = new BleManager();
 
 export function useBleController() {
   const discoveredDevices = useRef<Device[]>([]);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
 
-  scanForDevices();
+  if (!connectedDevice) {
+    scanForDevices();
+  }
 
   return {
     connect,
@@ -108,18 +107,24 @@ async function getControllerCharacteristic(device: Device) {
     for (const service of services) {
       const characteristics = await service.characteristics();
       for (const characteristic of characteristics) {
-        const labelUUID = "2901";
+        const labelUUID = "00002901-0000-1000-8000-00805f9b34fb";
 
         const descriptors = await characteristic.descriptors();
         const labelDescriptor = descriptors.find(
           (descriptor) => descriptor.uuid === labelUUID
         );
 
-        if (!labelDescriptor || !labelDescriptor.value) {
+        if (!labelDescriptor) {
           continue;
         }
 
-        const name = base64.decode(labelDescriptor.value);
+        const rawName = (await labelDescriptor.read()).value;
+
+        if (!rawName) {
+          continue;
+        }
+
+        const name = base64.decode(rawName);
         if (name === "json") {
           return characteristic;
         }

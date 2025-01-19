@@ -25,7 +25,7 @@ static_assert(IDebugCommunicator<DebugSerialCommunicator>);
 
 class SerialCommunicator {
 public:
-  int read(const size_t timeout = 100);
+  int read(const size_t timeout = 120);
   bool available();
   void write(const std::vector<Byte> &message);
   void write(Byte byte);

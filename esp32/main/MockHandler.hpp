@@ -6,6 +6,7 @@
 #include <Communicators.hpp>
 #include <DataFrame.hpp>
 #include <DataLink.hpp>
+#include <DataSources.hpp>
 #include <DiagnosticCommands.hpp>
 #include <EcuMock.hpp>
 #include <HardwareSerial.h>
@@ -18,7 +19,8 @@ DebugSerialCommunicator debugSerialCommunicator(Serial);
 DataLink dataLink;
 RequestHandlerDataLinkCommunicator requestHandlerDataLinkCommunicator(dataLink);
 EcuMockDataLinkCommunicator ecuMockDataLinkCommunicator(dataLink);
-EcuMock ecuMock(ecuMockDataLinkCommunicator, debugSerialCommunicator);
+FakeDataProviderManager fakeDataProviderManager;
+EcuMock ecuMock(ecuMockDataLinkCommunicator, debugSerialCommunicator, fakeDataProviderManager);
 RequestHandler requestHandler(requestHandlerDataLinkCommunicator, debugSerialCommunicator);
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
@@ -44,7 +46,7 @@ void setup() {
   debugSerialCommunicator.println("BLE server created");
 
   requestHandlerInit(requestHandler);
-  debugSerialCommunicator.println("Request handler initialized");
+  debugSerialCommunicator.println("Request Handler initialized");
 }
 
 void loop() {
