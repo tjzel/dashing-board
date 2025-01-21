@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Button } from "react-native";
+import { View, Text, StyleSheet, Button, TouchableOpacity } from "react-native";
 import * as ScreenOrientation from "expo-screen-orientation";
 import React from "react";
 import * as NavigationBar from "expo-navigation-bar";
 import { useBleController, type DataFrame } from "../../hooks/useBleController";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function HomeScreen() {
   const [dataFrame, setDataFrame] = useState<DataFrame | null>(null);
@@ -12,23 +13,26 @@ export default function HomeScreen() {
   // const bleController = useBleController();
 
   useEffect(() => {
-    const job = {id: -1}
+    const job = { id: -1 };
 
     function action() {
-      fetch("http://localhost:1234").then((result) => 
-        result.json()
-      ).then((data) => {
-        setDataFrame(data);
-        // console.log(data);
-        // job.id = requestAnimationFrame(action);
-        job.id = setTimeout(action, 100);
-      }).catch((error) => {
-        console.log(error);
-      });
+      fetch("http://localhost:1234")
+        .then((result) => result.json())
+        .then((data) => {
+          setDataFrame(data);
+          // console.log(data);
+          // job.id = requestAnimationFrame(action);
+          job.id = setTimeout(action, 100);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
     }
 
     action();
     NavigationBar.setVisibilityAsync("hidden");
+    // NavigationBar.setBehaviorAsync('inset-touch');
+
     setLandscapeLeftOrientation();
     // bleController.requestPermissions();
 
@@ -42,26 +46,75 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.innerContainer}>
-        <View style={[styles.valuesColumn, isMirrorView && styles.mirrorValuesColumn]}>
-          <Text style={[styles.styledText, styles.speedValueText, isMirrorView && styles.mirrorView]}>
+        <View style={[styles.switchButtonColumn]}>
+          <TouchableOpacity
+            onPress={() => setMirrorView(!isMirrorView)}
+            style={styles.iconButton}
+          >
+            <Ionicons
+              name="swap-horizontal-outline"
+              size={25}
+              color="#dcdcdc"
+            />
+          </TouchableOpacity>
+        </View>
+        <View
+          style={[
+            styles.valuesColumn,
+            isMirrorView && styles.mirrorValuesColumn,
+          ]}
+        >
+          <Text
+            style={[
+              styles.styledText,
+              styles.speedValueText,
+              isMirrorView && styles.mirrorView,
+            ]}
+          >
             {dataFrame?.vehicleSpeed}
           </Text>
         </View>
-        <View style={[styles.unitsColumn, isMirrorView && styles.mirrorUnitsColumn]}>
-          <Text style={[styles.styledText, styles.unitsText, isMirrorView && styles.mirrorView]}>km/h</Text>
-          <Button
-            title="Switch"
-            // onPress={() => bleController.connect(setDataFrame)}
-            onPress={() => setMirrorView(!isMirrorView)}
-          />
+        <View
+          style={[styles.unitsColumn, isMirrorView && styles.mirrorUnitsColumn]}
+        >
+          <Text
+            style={[
+              styles.styledText,
+              styles.unitsText,
+              isMirrorView && styles.mirrorView,
+            ]}
+          >
+            km/h
+          </Text>
         </View>
-        <View style={[styles.valuesColumn, isMirrorView && styles.mirrorValuesColumn]}>
-          <Text style={[styles.styledText, styles.rpmValueText, isMirrorView && styles.mirrorView]}>
+        <View
+          style={[
+            styles.valuesColumn,
+            isMirrorView && styles.mirrorValuesColumn,
+          ]}
+        >
+          <Text
+            style={[
+              styles.styledText,
+              styles.rpmValueText,
+              isMirrorView && styles.mirrorView,
+            ]}
+          >
             {dataFrame?.engineRPM}
           </Text>
         </View>
-        <View style={[styles.unitsColumn, isMirrorView && styles.mirrorUnitsColumn]}>
-          <Text style={[styles.styledText, styles.unitsText, isMirrorView && styles.mirrorView]}>rpm</Text>
+        <View
+          style={[styles.unitsColumn, isMirrorView && styles.mirrorUnitsColumn]}
+        >
+          <Text
+            style={[
+              styles.styledText,
+              styles.unitsText,
+              isMirrorView && styles.mirrorView,
+            ]}
+          >
+            rpm
+          </Text>
           {/* <Button
             title="Connect"
             onPress={() => bleController.connect(setDataFrame)}
@@ -92,8 +145,12 @@ const styles = StyleSheet.create({
   innerContainer: {
     flex: 1,
     flexDirection: "row",
-    paddingLeft: "8%",
+    // paddingLeft: "8%",
     paddingRight: "22%",
+  },
+  switchButtonColumn: {
+    flex: 1,
+    justifyContent: "flex-end",
   },
   valuesColumn: {
     flex: 2,
@@ -116,8 +173,6 @@ const styles = StyleSheet.create({
     fontFamily: "Droid 1997",
     textAlignVertical: "bottom",
     paddingBottom: 75,
-    // transform: 
-    // [{ scaleY: -1 }],
   },
   mirrorView: {
     transform: [{ scaleY: -1 }],
@@ -137,5 +192,14 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 20,
   },
-
+  iconButton: {
+    backgroundColor: "#797a7a",
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    // padding: 10,
+    height: 40,
+    width: 65,
+    margin: 15,
+  },
 });
