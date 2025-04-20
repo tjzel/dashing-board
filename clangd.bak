@@ -1,0 +1,6 @@
+CompileFlags:
+  CompilationDatabase: build
+
+  # Uncomment the following for ESP32 development.
+  # Compiler: /Users/bigpoppe/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/bin/xtensa-esp32-elf-g++
+  # CompilationDatabase: esp32/build/esp-idf/controller

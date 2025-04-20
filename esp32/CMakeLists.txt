@@ -8,6 +8,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CXX_STANDARD 23)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-idf_build_set_property(MINIMAL_BUILD ON)
+# idf_build_set_property(MINIMAL_BUILD ON)
 
 project(main)

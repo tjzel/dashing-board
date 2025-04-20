@@ -1,2 +1,25 @@
 CompileFlags:
-  CompilationDatabase: build
+  Remove:
+    [
+      -ivfsstatcache,
+      -index-store-path,
+      -index-unit-output-path,
+      -clang-vendor-feature*,
+      -fno-odr-hash-protocols,
+      -mlongcalls,
+      -fno-shrink-wrap,
+      -fstrict-volatile-bitfields,
+      -fno-tree-switch-conversion,
+    ]
+  Add:
+    - -D__XTENSA__=1
+  Compiler: /Users/bigpoppe/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/bin/xtensa-esp32-elf-g++
+  CompilationDatabase: /Users/bigpoppe/projects/dashing-board/esp32/build
+Diagnostics:
+  Suppress:
+    [
+      block_on_nonlocal,
+      readability-function-cognitive-complexity,
+      cppcoreguidelines-avoid-do-while,
+      cppcoreguidelines-pro-type-vararg,
+    ]

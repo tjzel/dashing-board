@@ -7,9 +7,13 @@ int SerialCommunicator::read(const size_t timeout) {
     ;
   }
   if (!_serial.available()) {
+    // debugComm_.println("Timeout");
     return -1;
   }
   return _serial.read();
+  // const auto read = _serial.read();
+  // debugComm_.println(read);
+  // return read;
 }
 
 bool SerialCommunicator::available() { return _serial.available(); }
@@ -37,6 +41,7 @@ void SerialCommunicator::write(const std::vector<Byte> &message) {
   // debugComm_.println("Sent");
 
   for (auto byte : message) {
+    // debugComm_.print(read());
     read();
   };
 }
