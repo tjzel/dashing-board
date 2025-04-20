@@ -45,6 +45,7 @@ export function useBleController() {
       let connectedDevice;
       try {
         connectedDevice = await device.connect({ requestMTU: 512 });
+        connectedDevice.onDisconnected(() => setConnectedDevice(null));
         await connectedDevice.discoverAllServicesAndCharacteristics();
       } catch (e) {
         console.log("FAILED TO CONNECT", e);
