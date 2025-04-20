@@ -3,6 +3,7 @@
 #include "Utils.hpp"
 #include <ICommunicator.hpp>
 #include <cassert>
+#include <iostream>
 #include <utility>
 
 // TODO: Split it into multiple functions.
