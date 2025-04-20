@@ -41,20 +41,22 @@ export default function HomeScreen() {
   //         setDataFrame(data);
   //         // console.log(data);
   //         // job.id = requestAnimationFrame(action);
-  //         job.id = setTimeout(action, 500);
+  //         // job.id = setTimeout(action, 500);
   //       })
   //       .catch((error) => {
   //         console.log(error);
   //       });
   //   }
 
-  //   action();
+  //   // action();
+  //   const interval = setInterval(action, 50);
   //   NavigationBar.setVisibilityAsync("hidden");
   //   setLandscapeLeftOrientation();
 
   //   return () => {
   //     // cancelAnimationFrame(job.id as number);
-  //     clearTimeout(job.id);
+  //     // clearTimeout(job.id);
+  //     clearInterval(interval);
   //   };
   // }, []);
 
@@ -69,6 +71,8 @@ export default function HomeScreen() {
 
   const kphToRpm = (1000 / 60 / tireCircumference) * 2;
 
+  console.log();
+
   let gear = "";
 
   if (
@@ -80,27 +84,31 @@ export default function HomeScreen() {
 
     const gearlessRPM = vehicleSpeed * kphToRpm;
 
-    if (engineRPM / gearlessRPM >= finalGearRatio * (firstGearRatio - 0.2)) {
-      gear = "1";
-    } else if (
-      engineRPM / gearlessRPM >=
-      finalGearRatio * (secondGearRatio - 0.2)
-    ) {
-      gear = "2";
-    } else if (
-      engineRPM / gearlessRPM >=
-      finalGearRatio * (thirdGearRatio - 0.1)
-    ) {
-      gear = "3";
-    } else if (
-      engineRPM / gearlessRPM >=
-      finalGearRatio * (fourthGearRatio - 0.05)
-    ) {
-      gear = "4";
-    } else {
-      gear = "5";
-    }
+    gear = (engineRPM / gearlessRPM / finalGearRatio).toFixed(2);
+
+    // if (engineRPM / gearlessRPM >= finalGearRatio * (secondGearRatio + 0.2)) {
+    //   gear = "1";
+    // } else if (
+    //   engineRPM / gearlessRPM >=
+    //   finalGearRatio * (thirdGearRatio + 0.2)
+    // ) {
+    //   gear = "2";
+    // } else if (
+    //   engineRPM / gearlessRPM >=
+    //   finalGearRatio * (fourthGearRatio + 0.1)
+    // ) {
+    //   gear = "3";
+    // } else if (
+    //   engineRPM / gearlessRPM >=
+    //   finalGearRatio * (fifthGearRatio + 0.1)
+    // ) {j
+    //   gear = "4";
+    // } else {
+    //   gear = "5";
+    // }
   }
+
+  console.log(gear);
 
   return (
     <View style={styles.container}>
@@ -292,10 +300,31 @@ export default function HomeScreen() {
                 styles.styledText,
                 styles.rpmValueText,
                 isMirrorView && styles.mirrorView,
-                { zIndex: 2, fontSize: 120 },
+                {
+                  zIndex: 2,
+                  opacity: 0.1,
+                  fontSize: 180,
+                  position: "absolute",
+                  transform: [{ translateY: 230 }],
+                },
               ]}
             >
-              {gear}
+              {"0"}
+            </Text>
+            <Text
+              style={[
+                styles.styledText,
+                styles.rpmValueText,
+                isMirrorView && styles.mirrorView,
+                {
+                  zIndex: 2,
+                  fontSize: 180,
+                  position: "absolute",
+                  transform: [{ translateY: 230 }],
+                },
+              ]}
+            >
+              {/* {gear} */}
             </Text>
           </View>
           <View style={{ flexDirection: "column" }}>

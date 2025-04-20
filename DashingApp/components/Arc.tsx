@@ -31,7 +31,7 @@ export function Arc({
   const lengthSv = useSharedValue(length);
 
   useEffect(() => {
-    lengthSv.value = withSpring(length, { duration: 250 });
+    lengthSv.value = withSpring(length, { duration: 50 });
   }, [length]);
 
   const maxArc = 240 / 180;
