@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Button } from "react-native";
+import { View, Text, StyleSheet, Button, TouchableOpacity } from "react-native";
 import * as ScreenOrientation from "expo-screen-orientation";
 import React from "react";
 import * as NavigationBar from "expo-navigation-bar";
@@ -466,6 +466,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingLeft: "10%",
     paddingRight: "15%",
+  },
+  switchButtonColumn: {
+    flex: 1,
+    justifyContent: "flex-end",
   },
   valuesColumn: {
     flex: 2,
