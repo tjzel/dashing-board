@@ -12,53 +12,64 @@ export default function HomeScreen() {
   const [dataFrame, setDataFrame] = useState<DataFrame | null>(null);
   const [, setLandscape] = useState(false);
   const [isMirrorView, setMirrorView] = useState(true);
-  const bleController = useBleController();
+  const [bleDisabled, setBleDisabled] = useState(false);
+  const [httpDisabled, setHttpDisabled] = useState(true);
+  const bleController = useBleController(bleDisabled);
 
   useEffect(() => {
     NavigationBar.setVisibilityAsync("hidden");
     setLandscapeLeftOrientation();
-    bleController.requestPermissions();
-    return () => {
-      bleController.disconnect();
-    };
   }, []);
 
   useEffect(() => {
+    if (!bleController || bleDisabled) {
+      return;
+    }
+    bleController.requestPermissions();
+    const bleControllerRef = bleController;
+    return () => {
+      bleControllerRef.disconnect();
+    };
+  }, [bleController, bleDisabled]);
+
+  useEffect(() => {
+    if (!bleController || bleDisabled) {
+      return;
+    }
     if (bleController.connectedDevice) {
       return;
     }
     bleController.connect(setDataFrame);
     setTimeout(async () => await bleController.connect(setDataFrame), 1000);
-  }, [bleController.connectedDevice]);
+  }, [bleController, bleController?.connectedDevice, bleDisabled]);
 
-  // useEffect(() => {
-  //   const job: { id: number | NodeJS.Timeout } = { id: -1 };
+  useEffect(() => {
+    if (httpDisabled) {
+      return;
+    }
 
-  //   function action() {
-  //     fetch("http://localhost:1234")
-  //       .then((result) => result.json())
-  //       .then((data) => {
-  //         setDataFrame(data);
-  //         // console.log(data);
-  //         // job.id = requestAnimationFrame(action);
-  //         // job.id = setTimeout(action, 500);
-  //       })
-  //       .catch((error) => {
-  //         console.log(error);
-  //       });
-  //   }
+    const action = () => {
+      fetch("http://localhost:1234")
+        .then((result) => result.json())
+        .then((data) => {
+          setDataFrame(data);
+          // console.log(data);
+          // job.id = requestAnimationFrame(action);
+          // job.id = setTimeout(action, 500);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    };
 
-  //   // action();
-  //   const interval = setInterval(action, 50);
-  //   NavigationBar.setVisibilityAsync("hidden");
-  //   setLandscapeLeftOrientation();
+    const interval = setInterval(action, 50);
+    NavigationBar.setVisibilityAsync("hidden");
+    setLandscapeLeftOrientation();
 
-  //   return () => {
-  //     // cancelAnimationFrame(job.id as number);
-  //     // clearTimeout(job.id);
-  //     clearInterval(interval);
-  //   };
-  // }, []);
+    return () => {
+      clearInterval(interval);
+    };
+  }, [httpDisabled]);
 
   const finalGearRatio = 4.105;
   const firstGearRatio = 3.454;
@@ -70,8 +81,6 @@ export default function HomeScreen() {
   const tireCircumference = 14 * 2.4 * 0.0254 * Math.PI;
 
   const kphToRpm = (1000 / 60 / tireCircumference) * 2;
-
-  console.log();
 
   let gear = "";
 
@@ -108,7 +117,7 @@ export default function HomeScreen() {
     // }
   }
 
-  console.log(gear);
+  console.log("gear: ", gear);
 
   return (
     <View style={styles.container}>
@@ -233,7 +242,7 @@ export default function HomeScreen() {
           >
             km/h
           </Text>
-          {bleController.connectedDevice ? null : (
+          {bleController?.connectedDevice ? null : (
             // {true ? null : (
             <Button
               title="Switch"
@@ -302,29 +311,17 @@ export default function HomeScreen() {
                 isMirrorView && styles.mirrorView,
                 {
                   zIndex: 2,
-                  opacity: 0.1,
-                  fontSize: 180,
+                  fontSize: 140,
                   position: "absolute",
-                  transform: [{ translateY: 230 }],
+                  transform: [
+                    { translateY: 200 },
+                    ...styles.mirrorView.transform,
+                  ],
+                  width: 200,
                 },
               ]}
             >
-              {"0"}
-            </Text>
-            <Text
-              style={[
-                styles.styledText,
-                styles.rpmValueText,
-                isMirrorView && styles.mirrorView,
-                {
-                  zIndex: 2,
-                  fontSize: 180,
-                  position: "absolute",
-                  transform: [{ translateY: 230 }],
-                },
-              ]}
-            >
-              {/* {gear} */}
+              {gear}
             </Text>
           </View>
           <View style={{ flexDirection: "column" }}>
@@ -412,22 +409,39 @@ export default function HomeScreen() {
           >
             rpm
           </Text>
-          {bleController.connectedDevice ? null : (
+          {bleController?.connectedDevice ? null : (
             // {/* {true ? null : ( */}
             <Button
               title="Connect"
               onPress={() => {
-                bleController.connect(setDataFrame);
+                bleController?.connect(setDataFrame);
               }}
             />
           )}
-          {bleController.connectedDevice ? null : (
+          {bleController?.connectedDevice ? null : (
             // {true ? null : (
             <Text style={styles.connectionIndicator}>
-              {bleController.connectedDevice
+              {bleController?.connectedDevice
                 ? "Device connected"
                 : "No device connected"}
             </Text>
+          )}
+          {bleController?.connectedDevice ? null : httpDisabled ? (
+            <Button
+              title="Use HTTP"
+              onPress={() => {
+                setBleDisabled(true);
+                setHttpDisabled(false);
+              }}
+            />
+          ) : (
+            <Button
+              title="Use BLE"
+              onPress={() => {
+                setBleDisabled(false);
+                setHttpDisabled(true);
+              }}
+            />
           )}
         </View>
       </View>

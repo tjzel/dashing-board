@@ -17,9 +17,13 @@ export interface DataFrame {
 
 const bleManager = new BleManager();
 
-export function useBleController() {
+export function useBleController(disabled?: boolean) {
   const discoveredDevices = useRef<Device[]>([]);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
+
+  if (disabled) {
+    return null;
+  }
 
   if (!connectedDevice) {
     scanForDevices();
