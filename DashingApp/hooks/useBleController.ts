@@ -17,9 +17,13 @@ export interface DataFrame {
 
 const bleManager = new BleManager();
 
-export function useBleController() {
+export function useBleController(disabled?: boolean) {
   const discoveredDevices = useRef<Device[]>([]);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
+
+  if (disabled) {
+    return null;
+  }
 
   if (!connectedDevice) {
     scanForDevices();
@@ -45,6 +49,7 @@ export function useBleController() {
       let connectedDevice;
       try {
         connectedDevice = await device.connect({ requestMTU: 512 });
+        connectedDevice.onDisconnected(() => setConnectedDevice(null));
         await connectedDevice.discoverAllServicesAndCharacteristics();
       } catch (e) {
         console.log("FAILED TO CONNECT", e);

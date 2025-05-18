@@ -8,8 +8,10 @@ idf_component_register(
   INCLUDE_DIRS
   "."
   PRIV_REQUIRES
+  arduino-esp32
   vfs
   fatfs
-  controller)
+  controller
+  driver)
 
 fatfs_create_spiflash_image(storage storage FLASH_IN_PROJECT)

@@ -38,9 +38,7 @@
       [
         "expo-font",
         {
-          "fonts": [
-            "./assets/fonts/Droid 1997.otf"
-          ]
+          "fonts": ["./assets/fonts/Droid 1997.otf"]
         }
       ],
       [

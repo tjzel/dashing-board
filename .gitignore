@@ -2,7 +2,7 @@
 .DS_Store
 
 # VSCode
-.vscode/*
+**/.vscode/
 
 # Debugger
 !.vscode/launch.json

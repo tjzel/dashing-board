@@ -231,9 +231,13 @@ RequestHandler<TCommunicator, TDebugCommunicator>::request(CommandLiteral comman
 
   // debugComm_.println("Request sent:");
   // printMessage(message, debugComm_);
+  auto attempt = 64;
 
   while (!_stateReader.feed(comm_.read())) {
-    ;
+    if (attempt-- == 0) {
+      debugComm_.println("Request failed");
+      return {};
+    }
   }
   auto response = _stateReader.getMessage();
   // debugComm_.println("Response received:");
