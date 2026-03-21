@@ -5,6 +5,7 @@
 static constexpr size_t kUartRxBufSize = 256;
 static constexpr size_t kUartTxBufSize = 0;
 static constexpr int kFastInitPulseMs = 25;
+static constexpr int kPostInitDelayMs = 50;
 
 // ── SerialCommunicator ──
 
@@ -95,6 +96,10 @@ void SerialCommunicator::init() {
   vTaskDelay(pdMS_TO_TICKS(kFastInitPulseMs));
 
   uartInstall();
+
+  // W1 timing: ECU needs up to 300ms after fast init wake-up
+  // before it's ready to receive (ISO 14230).
+  vTaskDelay(pdMS_TO_TICKS(kPostInitDelayMs));
 }
 
 void SerialCommunicator::setOnNewData(const std::function<void()> & /*onNewData*/) {}

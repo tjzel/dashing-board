@@ -1,9 +1,9 @@
-#include "StateReader.hxx"
-#include "Message.hxx"
-#include "Utils.hxx"
 #include <ICommunicator.hxx>
+#include <Message.hxx>
+#include <StateReader.hxx>
+#include <Utils.hxx>
+
 #include <cassert>
-#include <iostream>
 #include <utility>
 
 // TODO: Split it into multiple functions.
@@ -14,8 +14,7 @@ bool StateReader::feed(const int byte) {
   };
   switch (state_) {
   case WAITING_FOR_HEADER:
-    // TODO: Add own wrappers with default behavior.
-    if (!validators_.isHeaderValid(byte) || !(byte & 0xC0)) {
+    if (!validators_.isHeaderValid(byte)) {
       reset();
       return false;
     }

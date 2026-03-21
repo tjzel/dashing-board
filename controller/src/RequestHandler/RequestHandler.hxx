@@ -1,11 +1,14 @@
 #ifndef REQUEST_HANDLER_HPP
 #define REQUEST_HANDLER_HPP
+
 #include <DataFrame.hxx>
 #include <DiagnosticCommands.hxx>
 #include <ICommunicator.hxx>
 #include <Parser.hxx>
 #include <StateReader.hxx>
 #include <Utils.hxx>
+
+#include <chrono>
 #include <map>
 #include <vector>
 
@@ -22,7 +25,25 @@ public:
   std::vector<Byte> request(CommandLiteral command);
   [[nodiscard]] bool isCommandAvailable(CommandLiteral command) const;
   [[nodiscard]] bool isCommunicationInitialized() const;
-  explicit RequestHandler(TCommunicator &comm, TDebugCommunicator &debugComm);
+  explicit RequestHandler(TCommunicator &comm, TDebugCommunicator &debugComm,
+                          StateReaderValidators validators = defaultValidators());
+
+  static StateReaderValidators defaultValidators() {
+    return {
+        .isHeaderValid =
+            [](Byte byte) {
+              Byte addressing = byte & ADDRESSING_MASK;
+              return addressing == PHYSICAL_ADDRESSING || addressing == FUNCTIONAL_ADDRESSING;
+            },
+        .isTargetValid = [](Byte) { return true; },
+        .isSourceValid = [](Byte) { return true; },
+        .getTimestamp = []() -> uint64_t {
+          return std::chrono::duration_cast<std::chrono::milliseconds>(
+                     std::chrono::steady_clock::now().time_since_epoch())
+              .count();
+        },
+    };
+  }
 
 private:
   template <DiagnosticCommands::CommandAvailability TCommand> void loadAvailabilityForCommand();
@@ -259,17 +280,9 @@ bool RequestHandler<TCommunicator, TDebugCommunicator>::isCommunicationInitializ
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 RequestHandler<TCommunicator, TDebugCommunicator>::RequestHandler(TCommunicator &comm,
-                                                                  TDebugCommunicator &debugComm)
-    : comm_(comm), debugComm_(debugComm),
-      // TODO: Fix conditions here.
-      _stateReader({// [](Byte byte) { return (byte & REQUEST_HEADER_MODE_MASK) == 0xc0; },
-                    .isHeaderValid = [](const Byte) { return true; },
-                    .isTargetValid = [](const Byte) { return true; },
-                    // [](const Byte byte) { return byte == 0xf1; },
-                    .isSourceValid = [](const Byte) { return true; },
-                    // TODO: Fix this with a proper timestamp provider injection.
-                    // millis,
-                    .getTimestamp = []() { return 0; }}),
+                                                                  TDebugCommunicator &debugComm,
+                                                                  StateReaderValidators validators)
+    : comm_(comm), debugComm_(debugComm), _stateReader(std::move(validators)),
       availableCommands_({{DiagnosticCommands::COMMAND_AVAILABILITY_00_1F::value, true}}) {}
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>

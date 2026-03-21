@@ -19,4 +19,6 @@ CompileFlags:
   Remove:
     - -mlongcalls
     - -fno-shrink-wrap
+    - -fstrict-volatile-bitfields
+    - -fno-tree-switch-conversion
   CompilationDatabase: esp32/build/esp-idf/controller
