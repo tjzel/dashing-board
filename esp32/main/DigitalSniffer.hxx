@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <Communicators.hxx>
 #include <HardwareSerial.h>
-#include <SerialCommunicator.hpp>
+#include <SerialCommunicator.hxx>
 
 class DigitalSniffer {
 public:

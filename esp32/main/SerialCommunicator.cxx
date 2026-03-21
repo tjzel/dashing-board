@@ -1,4 +1,4 @@
-#include <SerialCommunicator.hpp>
+#include <SerialCommunicator.hxx>
 
 int SerialCommunicator::read(const size_t timeout) {
   const auto start = millis();

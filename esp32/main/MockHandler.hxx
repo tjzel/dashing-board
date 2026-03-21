@@ -2,7 +2,7 @@
 #define MOCK_HANDLER_HPP
 
 #include <Arduino.h>
-#include <BLEDataServer.hpp>
+#include <BLEDataServer.hxx>
 #include <Communicators.hxx>
 #include <DataFrame.hxx>
 #include <DataLink.hxx>
@@ -11,7 +11,7 @@
 #include <EcuMock.hxx>
 #include <HardwareSerial.h>
 #include <RequestHandler.hxx>
-#include <SerialCommunicator.hpp>
+#include <SerialCommunicator.hxx>
 
 // BluetoothSerial serialBT;
 

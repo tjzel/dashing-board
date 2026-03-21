@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <Communicators.hxx>
 #include <HardwareSerial.h>
-#include <SerialCommunicator.hpp>
+#include <SerialCommunicator.hxx>
 #include <cstdint>
 #include <driver/twai.h>
 #include <esp_err.h>

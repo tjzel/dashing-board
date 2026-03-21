@@ -2,9 +2,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 idf_component_register(
   SRCS
-  "main.cpp"
-  "SerialCommunicator.cpp"
-  "BLEDataServer.cpp"
+  "main.cxx"
+  "SerialCommunicator.cxx"
+  "BLEDataServer.cxx"
   INCLUDE_DIRS
   "."
   PRIV_REQUIRES

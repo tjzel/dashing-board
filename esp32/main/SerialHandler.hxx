@@ -2,13 +2,13 @@
 #define SERIAL_HANDLER_HPP
 
 #include <Arduino.h>
-#include <BLEDataServer.hpp>
+#include <BLEDataServer.hxx>
 #include <BluetoothSerial.h>
 #include <Communicators.hxx>
 #include <DiagnosticCommands.hxx>
 #include <HardwareSerial.h>
 #include <RequestHandler.hxx>
-#include <SerialCommunicator.hpp>
+#include <SerialCommunicator.hxx>
 
 constexpr auto serialCommunicatorNumber = 2;
 

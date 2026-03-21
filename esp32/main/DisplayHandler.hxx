@@ -7,9 +7,9 @@
 #include <DataSources.hxx>
 #include <DiagnosticCommands.hxx>
 #include <EcuMock.hxx>
-#include <ILI9341Display.hpp>
+#include <ILI9341Display.hxx>
 #include <RequestHandler.hxx>
-#include <SerialCommunicator.hpp>
+#include <SerialCommunicator.hxx>
 
 #include <GearDetector.hxx>
 

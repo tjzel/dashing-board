@@ -3,13 +3,13 @@
 
 #include "esp_intr_alloc.h"
 #include <Arduino.h>
-#include <BLEDataServer.hpp>
+#include <BLEDataServer.hxx>
 #include <BluetoothSerial.h>
 #include <Communicators.hxx>
 #include <DiagnosticCommands.hxx>
 #include <HardwareSerial.h>
 #include <RequestHandler.hxx>
-#include <SerialCommunicator.hpp>
+#include <SerialCommunicator.hxx>
 #include <cstdint>
 #include <driver/twai.h>
 #include <esp_err.h>

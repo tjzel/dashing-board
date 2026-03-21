@@ -3,7 +3,7 @@
 #include <DataFrame.hxx>
 #include <DiagnosticCommands.hxx>
 #include <RequestHandler.hxx>
-#include <SerialCommunicator.hpp>
+#include <SerialCommunicator.hxx>
 
 constexpr auto serialCommunicatorNumber = 2;
 constexpr auto serialCommunicatorRx = GPIO_NUM_25;
