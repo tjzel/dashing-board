@@ -1,6 +1,6 @@
-#include <DataFrame.hpp>
-#include <Simulator.hpp>
-#include <httplib.h>
+#include <DataFrame.hxx>
+#include <Simulator.hxx>
+#include <httplib.hxx>
 
 int main() {
 
