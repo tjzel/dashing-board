@@ -18,6 +18,7 @@ Checks:
   - -cppcoreguidelines-owning-memory
   - -cppcoreguidelines-avoid-non-const-global-variables
   - -cppcoreguidelines-pro-type-union-access
+  - -cppcoreguidelines-interfaces-global-init
   - -performance-avoid-endl
   - -readability-identifier-length
 FormatStyle: llvm
