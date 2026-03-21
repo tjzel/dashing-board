@@ -19,4 +19,5 @@ Checks:
   - -cppcoreguidelines-avoid-non-const-global-variables
   - -cppcoreguidelines-pro-type-union-access
   - -performance-avoid-endl
+  - -readability-identifier-length
 FormatStyle: llvm

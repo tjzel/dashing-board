@@ -5,7 +5,7 @@ add_library(controller STATIC)
 
 target_include_directories(
   controller PUBLIC src src/RequestHandler src/Simulator src/Communication
-  src/Obd2Protocol)
+  src/Obd2Protocol src/Utils)
 
 file(GLOB_RECURSE SOURCES src/RequestHandler/*.cpp src/Simulator/*.cpp src/Communication/*.cpp
   src/Obd2Protocol/*.cpp)

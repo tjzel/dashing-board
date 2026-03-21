@@ -29,41 +29,45 @@ double SpeedAndRPMDataProvider::kphToRpm =
 
 SpeedAndRPMDataProvider::SpeedAndRPMDataProvider(int initialSpeed, int step, int sign,
                                                  int bottomThreshold, int topThreshold)
-    : speed_(initialSpeed), rpm_(calculateRPM()), step_(step), sign_(sign),
-      bottomThreshold_(bottomThreshold), topThreshold_(topThreshold) {}
+    : speed_(initialSpeed), rpm_(0), step_(step), sign_(sign), bottomThreshold_(bottomThreshold),
+      topThreshold_(topThreshold) {}
 
 SpeedAndRPM SpeedAndRPMDataProvider::get() {
+  static const double gearRatios[] = {firstGearRatio, secondGearRatio, thirdGearRatio,
+                                      fourthGearRatio, fifthGearRatio};
+
   const auto speed = speed_;
-  const auto rpm = calculateRPM();
-  if (speed_ <= bottomThreshold_) {
+
+  // Step speed.
+  speed_ += sign_ * step_;
+  if (speed_ < 0)
+    speed_ = 0;
+
+  // Derive RPM from speed and current gear.
+  rpm_ = speed_ * kphToRpm * gearRatios[gear_ - 1] * finalGearRatio;
+
+  // Shift up at 6000 RPM.
+  if (rpm_ >= 6000 && gear_ < 5) {
+    gear_++;
+    rpm_ = speed_ * kphToRpm * gearRatios[gear_ - 1] * finalGearRatio;
+  }
+
+  // Shift down at 2000 RPM.
+  if (rpm_ <= 2000 && gear_ > 1) {
+    gear_--;
+    rpm_ = speed_ * kphToRpm * gearRatios[gear_ - 1] * finalGearRatio;
+  }
+
+  // Bounce at limits.
+  if (speed_ <= 0) {
+    speed_ = 0;
+    gear_ = 1;
     sign_ = 1;
-  } else if (speed_ >= topThreshold_) {
+  } else if (rpm_ >= 6500 && gear_ >= 5) {
     sign_ = -1;
   }
 
-  speed_ += sign_ * step_;
-  return {.speed = speed, .rpm = rpm};
+  return {.speed = speed, .rpm = rpm_};
 }
 
-int SpeedAndRPMDataProvider::calculateRPM() {
-  double gearRatio = 0;
-  switch (gear_) {
-  case 1:
-    gearRatio = firstGearRatio;
-    break;
-  case 2:
-    gearRatio = secondGearRatio;
-    break;
-  case 3:
-    gearRatio = thirdGearRatio;
-    break;
-  case 4:
-    gearRatio = fourthGearRatio;
-    break;
-  case 5:
-    gearRatio = fifthGearRatio;
-    break;
-  }
-  gearRatio *= finalGearRatio;
-  return speed_ * kphToRpm * gearRatio;
-}
+int SpeedAndRPMDataProvider::calculateRPM() { return rpm_; }

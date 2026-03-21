@@ -34,7 +34,8 @@ target_include_directories(
   INTERFACE "${CONTROLLER_SOURCE_DIR}/src/RequestHandler"
             "${CONTROLLER_SOURCE_DIR}/src/Simulator"
             "${CONTROLLER_SOURCE_DIR}/src/Communication"
-            "${CONTROLLER_SOURCE_DIR}/src/Obd2Protocol")
+            "${CONTROLLER_SOURCE_DIR}/src/Obd2Protocol"
+            "${CONTROLLER_SOURCE_DIR}/src/Utils")
 
 add_dependencies(controller_lib controller_proj)
 

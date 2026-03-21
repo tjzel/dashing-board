@@ -11,6 +11,8 @@
 #include <RequestHandler.hpp>
 #include <SerialCommunicator.hpp>
 
+#include <GearDetector.hpp>
+
 #include <cstdio>
 #include <esp_log.h>
 
@@ -33,8 +35,13 @@ EcuMock ecuMock(ecuMockDataLinkCommunicator, debugSerialCommunicator, fakeDataPr
 RequestHandler requestHandler(requestHandlerDataLinkCommunicator, debugSerialCommunicator);
 
 int previousSpeed = -1;
-char previousBuf[8] = {};
-int16_t previousX = 0;
+int previousRpm = -1;
+int previousGear = -1;
+
+// Gear ratios from DataProvider.hpp simulator.
+// tireCircumference = 14 * 2.4 * 0.0254 * π, radius = circumference / (2π)
+static constexpr double TIRE_RADIUS = 14 * 2.4 * 0.0254 / 2.0;
+GearDetector gearDetector(4.105, {3.454, 1.904, 1.28, 0.966, 0.757}, TIRE_RADIUS);
 
 // BOOT button on GPIO 0 (active low, has internal pull-up).
 static constexpr gpio_num_t BUTTON_PIN = GPIO_NUM_0;
@@ -44,7 +51,7 @@ static constexpr uint8_t orientations[] = {
     0b01101000, // landscape HUD (mirrored + upside down)
 };
 static constexpr size_t NUM_ORIENTATIONS = sizeof(orientations) / sizeof(orientations[0]);
-size_t currentOrientation = 0;
+size_t currentOrientation = 1;
 bool lastButtonState = true; // pulled high when not pressed
 
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
@@ -55,40 +62,77 @@ void requestHandlerInit(RequestHandler<TCommunicator, TDebugCommunicator> &handl
   handler.printAvailableForDataFrame();
 }
 
-void drawSpeedLabel() {
-  const char *label = "km/h";
-  int16_t w = tft.textWidth(label, 3);
-  tft.drawString((ILI9341Display::WIDTH - w) / 2, 195, label, ILI9341Display::LIGHTGREY,
-                 ILI9341Display::BLACK, 3);
+// Fixed-width 3-digit speed display — stretched vertically.
+static constexpr uint8_t SPEED_SIZE_X = 12;
+static constexpr uint8_t SPEED_SIZE_Y = 15;
+static constexpr int16_t SPEED_Y = 35;
+
+// RPM bar layout.
+static constexpr int16_t RPM_BAR_X = 10;
+static constexpr int16_t RPM_BAR_Y = 200;
+static constexpr int16_t RPM_BAR_W = 300;
+static constexpr int16_t RPM_BAR_H = 30;
+static constexpr int RPM_MAX = 7000;
+
+static constexpr uint8_t RPM_TEXT_SIZE = 2;
+static constexpr int16_t RPM_TEXT_Y = RPM_BAR_Y - 7 * RPM_TEXT_SIZE - 4;
+
+// Muted bar colors — less harsh than pure RGB.
+static constexpr uint16_t RPM_COLOR_LOW = 0x9CF3;  // soft grey-white
+static constexpr uint16_t RPM_COLOR_MID = 0x3ECA;  // muted teal-green
+static constexpr uint16_t RPM_COLOR_HIGH = 0x3B5F; // subdued blue
+
+uint16_t rpmBarColor(int rpm) {
+  if (rpm > 3000)
+    return RPM_COLOR_HIGH;
+  if (rpm > 2000)
+    return RPM_COLOR_MID;
+  return RPM_COLOR_LOW;
+}
+
+void drawRpmText(int rpm) {
+  char buf[8];
+  snprintf(buf, sizeof(buf), "%5d", rpm);
+  int16_t w = tft.textWidth(buf, RPM_TEXT_SIZE);
+  int16_t x = RPM_BAR_X + RPM_BAR_W - w;
+  tft.drawString(x, RPM_TEXT_Y, buf, ILI9341Display::DARKGREY, ILI9341Display::BLACK, RPM_TEXT_SIZE);
+}
+
+void drawRpmBar(int rpm) {
+  int16_t fillW = (int32_t)rpm * RPM_BAR_W / RPM_MAX;
+  if (fillW > RPM_BAR_W)
+    fillW = RPM_BAR_W;
+  if (fillW > 0)
+    tft.fillRect(RPM_BAR_X, RPM_BAR_Y, fillW, RPM_BAR_H, rpmBarColor(rpm));
+  int16_t emptyW = RPM_BAR_W - fillW;
+  if (emptyW > 0)
+    tft.fillRect(RPM_BAR_X + fillW, RPM_BAR_Y, emptyW, RPM_BAR_H, ILI9341Display::LIGHTGREY);
+}
+
+// Gear indicator — top-left corner, small.
+static constexpr uint8_t GEAR_SIZE = SPEED_SIZE_X;
+static constexpr int16_t GEAR_X = 10;
+static constexpr int16_t GEAR_Y = 10;
+
+void drawGear(int gear) {
+  char buf[4];
+  if (gear == 0)
+    snprintf(buf, sizeof(buf), "N");
+  else
+    snprintf(buf, sizeof(buf), "%d", gear);
+  tft.drawString(GEAR_X, GEAR_Y, buf, ILI9341Display::RED, ILI9341Display::BLACK, SPEED_SIZE_X, SPEED_SIZE_Y);
 }
 
 void drawSpeed(int speed) {
-  // If the digit count changed, clear the old region first to handle width
-  // differences (e.g. "99" -> "100"). Otherwise drawString paints both fg and
-  // bg pixels in one pass — no flicker.
-  if (previousBuf[0] != '\0' && strlen(previousBuf) != 0) {
-    int16_t oldW = tft.textWidth(previousBuf, 10);
-    if (oldW > tft.textWidth("000", 10)) // safety cap
-      oldW = tft.textWidth("000", 10);
-    int16_t newBufW;
-    {
-      char tmp[8];
-      snprintf(tmp, sizeof(tmp), "%d", speed);
-      newBufW = tft.textWidth(tmp, 10);
-    }
-    if (oldW != newBufW) {
-      tft.fillRect(previousX, 60, oldW, 70, ILI9341Display::BLACK);
-    }
-  }
-
+  // Right-justify within 3 chars so digit positions never shift.
   char buf[8];
-  snprintf(buf, sizeof(buf), "%d", speed);
-  int16_t w = tft.textWidth(buf, 10);
-  int16_t x = (ILI9341Display::WIDTH - w) / 2;
-  tft.drawString(x, 60, buf, ILI9341Display::RED, ILI9341Display::BLACK, 10);
+  snprintf(buf, sizeof(buf), "%3d", speed);
 
-  memcpy(previousBuf, buf, sizeof(previousBuf));
-  previousX = x;
+  int16_t w = tft.textWidth(buf, SPEED_SIZE_X);
+  // Offset right so speed doesn't overlap the gear indicator.
+  int16_t speedAreaLeft = GEAR_X + (6 * SPEED_SIZE_X) + 10;
+  int16_t x = speedAreaLeft + (ILI9341Display::WIDTH - speedAreaLeft - w) / 2;
+  tft.drawString(x, SPEED_Y, buf, ILI9341Display::RED, ILI9341Display::BLACK, SPEED_SIZE_X, SPEED_SIZE_Y);
 }
 
 void setup() {
@@ -110,7 +154,7 @@ void setup() {
   tft.fillScreen(ILI9341Display::BLACK);
   ESP_LOGI(TAG, "ILI9341 display initialized");
 
-  drawSpeedLabel();
+  drawRpmBar(0);
 
   requestHandlerInit(requestHandler);
   ESP_LOGI(TAG, "Request Handler initialized");
@@ -123,19 +167,33 @@ void loop() {
     currentOrientation = (currentOrientation + 1) % NUM_ORIENTATIONS;
     tft.setMadctl(orientations[currentOrientation]);
     tft.fillScreen(ILI9341Display::BLACK);
-    drawSpeedLabel();
-    previousBuf[0] = '\0';
+    drawRpmBar(0);
     previousSpeed = -1;
+    previousRpm = -1;
+    previousGear = -1;
     vTaskDelay(pdMS_TO_TICKS(200)); // simple debounce
   }
   lastButtonState = buttonState;
 
   auto dataFrame = requestHandler.getDataFrame();
   int speed = dataFrame.vehicleSpeed;
+  int rpm = dataFrame.engineRPM;
+  int gear = gearDetector.detect(rpm, speed);
 
   if (speed != previousSpeed) {
     drawSpeed(speed);
     previousSpeed = speed;
+  }
+
+  if (rpm != previousRpm) {
+    drawRpmText(rpm);
+    drawRpmBar(rpm);
+    previousRpm = rpm;
+  }
+
+  if (gear != previousGear) {
+    drawGear(gear);
+    previousGear = gear;
   }
 
   // vTaskDelay(pdMS_TO_TICKS(200));

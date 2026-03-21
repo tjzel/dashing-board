@@ -61,7 +61,7 @@ class FakeDataProviderManager {
 
   // DataProvider rpmProvider_{800, 100, 1, 800, 4000};
   // DataProvider speedProvider_{10, 1, 1, 10, 140};
-  SpeedAndRPMDataProvider speedAndRpmProvider_{60, 1, 1, 0, 120};
+  SpeedAndRPMDataProvider speedAndRpmProvider_{0, 1, 1, 0, 200};
   DataProvider engineLoadProvider_{15, 2, 1, 0, 100};
   DataProvider throttlePositionProvider_{10, 5, 1, 0, 100};
   DataProvider uptimeProvider_{15, 1, 1, 5, 60};

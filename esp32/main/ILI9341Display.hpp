@@ -19,6 +19,9 @@ public:
   static constexpr uint16_t BLACK = 0x0000;
   static constexpr uint16_t RED = 0xF800;
   static constexpr uint16_t GREEN = 0x07E0;
+  static constexpr uint16_t WHITE = 0xFFFF;
+  static constexpr uint16_t BLUE = 0x001F;
+  static constexpr uint16_t DARKGREY = 0x4208;
   static constexpr uint16_t LIGHTGREY = 0xC618;
 
   ILI9341Display(gpio_num_t cs, gpio_num_t dc, gpio_num_t rst, gpio_num_t mosi, gpio_num_t sclk,
@@ -68,15 +71,11 @@ public:
     writeCommand(0x3A); // Pixel format: 16-bit
     writeData(0x55);
 
-    writeCommand(0x36); // Memory access control (landscape)
-#ifdef NON_HUD_ORIENTATION
-    writeData(0x28); // MX | BGR
-#else
     // HUD: MX | MV | BGR (landscape, mirrored vertically)
     //   MY MX MV ML BGR MH  0  0
     //    0  1  1  0   1  0  0  0
-    writeData(0b01101000); // 0x68
-#endif
+    writeCommand(0x36);
+    writeData(0b01101000);
 
     writeCommand(0x29); // Display ON
     vTaskDelay(pdMS_TO_TICKS(100));
@@ -111,30 +110,38 @@ public:
     heap_caps_free(buf);
   }
 
-  void drawChar(int16_t x, int16_t y, char c, uint16_t fg, uint16_t bg, uint8_t size) {
+  void drawChar(int16_t x, int16_t y, char c, uint16_t fg, uint16_t bg, uint8_t sizeX,
+                uint8_t sizeY) {
     if (c < 32 || c > 126)
       c = '?';
-    // Draw the full 6x7 character cell (5 data cols + 1 spacing col) with
-    // both foreground and background so every pixel is written in one pass.
     for (uint8_t col = 0; col < 6; col++) {
       uint8_t line = (col < 5) ? font5x7[c - 32][col] : 0x00;
       for (uint8_t row = 0; row < 7; row++) {
         uint16_t colour = (line & (1 << row)) ? fg : bg;
-        if (size == 1) {
+        if (sizeX == 1 && sizeY == 1) {
           drawPixel(x + col, y + row, colour);
         } else {
-          fillRect(x + col * size, y + row * size, size, size, colour);
+          fillRect(x + col * sizeX, y + row * sizeY, sizeX, sizeY, colour);
         }
       }
     }
   }
 
-  void drawString(int16_t x, int16_t y, const char *str, uint16_t fg, uint16_t bg, uint8_t size) {
+  void drawChar(int16_t x, int16_t y, char c, uint16_t fg, uint16_t bg, uint8_t size) {
+    drawChar(x, y, c, fg, bg, size, size);
+  }
+
+  void drawString(int16_t x, int16_t y, const char *str, uint16_t fg, uint16_t bg, uint8_t sizeX,
+                  uint8_t sizeY) {
     while (*str) {
-      drawChar(x, y, *str, fg, bg, size);
-      x += 6 * size;
+      drawChar(x, y, *str, fg, bg, sizeX, sizeY);
+      x += 6 * sizeX;
       str++;
     }
+  }
+
+  void drawString(int16_t x, int16_t y, const char *str, uint16_t fg, uint16_t bg, uint8_t size) {
+    drawString(x, y, str, fg, bg, size, size);
   }
 
   int16_t textWidth(const char *str, uint8_t size) {
