@@ -1,9 +1,12 @@
 #ifndef ILI9341_DISPLAY_HPP
 #define ILI9341_DISPLAY_HPP
 
+#include <array>
+#include <cstdint>
 #include <cstring>
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
+#include <esp_heap_caps.h>
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -26,27 +29,23 @@ public:
 
   ILI9341Display(gpio_num_t cs, gpio_num_t dc, gpio_num_t rst, gpio_num_t mosi, gpio_num_t sclk,
                  gpio_num_t bl)
-      : cs_(cs), dc_(dc), rst_(rst), mosi_(mosi), sclk_(sclk), bl_(bl), spi_(nullptr) {}
+      : cs_(cs), dc_(dc), rst_(rst), mosi_(mosi), sclk_(sclk), bl_(bl) {}
 
   void begin() {
-    // Configure DC, RST, and BL as outputs.
     gpio_config_t io_conf = {};
     io_conf.pin_bit_mask = (1ULL << dc_) | (1ULL << rst_) | (1ULL << bl_);
     io_conf.mode = GPIO_MODE_OUTPUT;
     gpio_config(&io_conf);
 
-    // Backlight on (max brightness).
     gpio_set_level(bl_, 1);
 
-    // Hardware reset.
     gpio_set_level(rst_, 1);
-    vTaskDelay(pdMS_TO_TICKS(5));
+    vTaskDelay(pdMS_TO_TICKS(kResetSetupMs));
     gpio_set_level(rst_, 0);
-    vTaskDelay(pdMS_TO_TICKS(20));
+    vTaskDelay(pdMS_TO_TICKS(kResetPulseMs));
     gpio_set_level(rst_, 1);
-    vTaskDelay(pdMS_TO_TICKS(150));
+    vTaskDelay(pdMS_TO_TICKS(kResetRecoveryMs));
 
-    // Initialise SPI bus.
     spi_bus_config_t buscfg = {};
     buscfg.mosi_io_num = mosi_;
     buscfg.miso_io_num = -1;
@@ -57,52 +56,48 @@ public:
     ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO));
 
     spi_device_interface_config_t devcfg = {};
-    devcfg.clock_speed_hz = 26 * 1000 * 1000;
+    devcfg.clock_speed_hz = kSpiClockHz;
     devcfg.mode = 0;
     devcfg.spics_io_num = cs_;
-    devcfg.queue_size = 7;
+    devcfg.queue_size = kSpiQueueSize;
     ESP_ERROR_CHECK(spi_bus_add_device(SPI2_HOST, &devcfg, &spi_));
 
-    writeCommand(0x01); // Software reset
-    vTaskDelay(pdMS_TO_TICKS(150));
-    writeCommand(0x11); // Sleep out
-    vTaskDelay(pdMS_TO_TICKS(500));
+    writeCommand(kCmdSwReset);
+    vTaskDelay(pdMS_TO_TICKS(kResetRecoveryMs));
+    writeCommand(kCmdSleepOut);
+    vTaskDelay(pdMS_TO_TICKS(kSleepOutMs));
 
-    writeCommand(0x3A); // Pixel format: 16-bit
-    writeData(0x55);
+    writeCommand(kCmdPixelFormat);
+    writeData(kPixelFormat16Bit);
 
-    // HUD: MX | MV | BGR (landscape, mirrored vertically)
-    //   MY MX MV ML BGR MH  0  0
-    //    0  1  1  0   1  0  0  0
-    writeCommand(0x36);
-    writeData(0b01101000);
+    writeCommand(kCmdMadctl);
+    writeData(kMadctlLandscape);
 
-    writeCommand(0x29); // Display ON
-    vTaskDelay(pdMS_TO_TICKS(100));
+    writeCommand(kCmdDisplayOn);
+    vTaskDelay(pdMS_TO_TICKS(kDisplayOnMs));
   }
 
   void fillScreen(uint16_t colour) { fillRect(0, 0, WIDTH, HEIGHT, colour); }
 
   void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t colour) {
-    if (x >= WIDTH || y >= HEIGHT || w <= 0 || h <= 0)
+    if (x >= WIDTH || y >= HEIGHT || w <= 0 || h <= 0) {
       return;
+    }
 
     setAddrWindow(x, y, x + w - 1, y + h - 1);
 
-    // Allocate a single-row buffer to avoid exhausting DMA memory on large
-    // fills (full screen = 150 KB which exceeds available DMA heap).
-    size_t rowPixels = (size_t)w;
-    size_t rowBytes = rowPixels * 2;
-    auto *buf = (uint16_t *)heap_caps_malloc(rowBytes, MALLOC_CAP_DMA);
-    uint16_t swapped = __builtin_bswap16(colour);
+    const auto rowPixels = static_cast<size_t>(w);
+    const size_t rowBytes = rowPixels * 2;
+    auto *buf = static_cast<uint16_t *>(heap_caps_malloc(rowBytes, MALLOC_CAP_DMA));
+    const uint16_t swapped = __builtin_bswap16(colour);
     for (size_t i = 0; i < rowPixels; i++) {
-      buf[i] = swapped;
+      buf[i] = swapped; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     gpio_set_level(dc_, 1);
     for (int16_t row = 0; row < h; row++) {
       spi_transaction_t t = {};
-      t.length = rowBytes * 8;
+      t.length = rowBytes * kBitsPerByte;
       t.tx_buffer = buf;
       spi_device_polling_transmit(spi_, &t);
     }
@@ -112,16 +107,22 @@ public:
 
   void drawChar(int16_t x, int16_t y, char c, uint16_t fg, uint16_t bg, uint8_t sizeX,
                 uint8_t sizeY) {
-    if (c < 32 || c > 126)
+    if (c < kPrintableFirst || c > kPrintableLast) {
       c = '?';
-    for (uint8_t col = 0; col < 6; col++) {
-      uint8_t line = (col < 5) ? font5x7[c - 32][col] : 0x00;
-      for (uint8_t row = 0; row < 7; row++) {
-        uint16_t colour = (line & (1 << row)) ? fg : bg;
+    }
+    for (uint8_t col = 0; col < kFontCharWidth; col++) {
+      const uint8_t line =
+          (col <
+           kFontGlyphWidth) // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+              ? font5x7[c - kPrintableFirst][col]
+              : 0x00;
+      for (uint8_t row = 0; row < kFontHeight; row++) {
+        const uint16_t colour = ((line & (1 << row)) != 0) ? fg : bg;
         if (sizeX == 1 && sizeY == 1) {
-          drawPixel(x + col, y + row, colour);
+          drawPixel(static_cast<int16_t>(x + col), static_cast<int16_t>(y + row), colour);
         } else {
-          fillRect(x + col * sizeX, y + row * sizeY, sizeX, sizeY, colour);
+          fillRect(static_cast<int16_t>(x + (col * sizeX)), static_cast<int16_t>(y + (row * sizeY)),
+                   sizeX, sizeY, colour);
         }
       }
     }
@@ -133,10 +134,10 @@ public:
 
   void drawString(int16_t x, int16_t y, const char *str, uint16_t fg, uint16_t bg, uint8_t sizeX,
                   uint8_t sizeY) {
-    while (*str) {
+    while (*str != '\0') {
       drawChar(x, y, *str, fg, bg, sizeX, sizeY);
-      x += 6 * sizeX;
-      str++;
+      x = static_cast<int16_t>(x + (kFontCharWidth * sizeX));
+      str++; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
   }
 
@@ -144,26 +145,53 @@ public:
     drawString(x, y, str, fg, bg, size, size);
   }
 
-  int16_t textWidth(const char *str, uint8_t size) {
-    int16_t len = strlen(str);
-    if (len == 0)
+  static int16_t textWidth(const char *str, uint8_t size) {
+    const auto len = static_cast<int16_t>(strlen(str));
+    if (len == 0) {
       return 0;
-    return len * 6 * size - size;
+    }
+    return static_cast<int16_t>((len * kFontCharWidth * size) - size);
   }
 
   void setMadctl(uint8_t madctl) {
-    writeCommand(0x36);
+    writeCommand(kCmdMadctl);
     writeData(madctl);
   }
 
 private:
+  static constexpr int kResetSetupMs = 5;
+  static constexpr int kResetPulseMs = 20;
+  static constexpr int kResetRecoveryMs = 150;
+  static constexpr int kSleepOutMs = 500;
+  static constexpr int kDisplayOnMs = 100;
+  static constexpr int kSpiClockHz = 26'000'000;
+  static constexpr int kSpiQueueSize = 7;
+  static constexpr int kBitsPerByte = 8;
+
+  static constexpr uint8_t kCmdSwReset = 0x01;
+  static constexpr uint8_t kCmdSleepOut = 0x11;
+  static constexpr uint8_t kCmdDisplayOn = 0x29;
+  static constexpr uint8_t kCmdMadctl = 0x36;
+  static constexpr uint8_t kCmdPixelFormat = 0x3A;
+  static constexpr uint8_t kCmdColumnAddrSet = 0x2A;
+  static constexpr uint8_t kCmdPageAddrSet = 0x2B;
+  static constexpr uint8_t kCmdMemWrite = 0x2C;
+  static constexpr uint8_t kPixelFormat16Bit = 0x55;
+  static constexpr uint8_t kMadctlLandscape = 0b01101000;
+
+  static constexpr uint8_t kFontGlyphWidth = 5;
+  static constexpr uint8_t kFontCharWidth = 6;
+  static constexpr uint8_t kFontHeight = 7;
+  static constexpr char kPrintableFirst = 32;
+  static constexpr char kPrintableLast = 126;
+
   gpio_num_t cs_, dc_, rst_, mosi_, sclk_, bl_;
-  spi_device_handle_t spi_;
+  spi_device_handle_t spi_{};
 
   void writeCommand(uint8_t cmd) {
     gpio_set_level(dc_, 0);
     spi_transaction_t t = {};
-    t.length = 8;
+    t.length = kBitsPerByte;
     t.tx_buffer = &cmd;
     spi_device_polling_transmit(spi_, &t);
   }
@@ -171,7 +199,7 @@ private:
   void writeData(uint8_t data) {
     gpio_set_level(dc_, 1);
     spi_transaction_t t = {};
-    t.length = 8;
+    t.length = kBitsPerByte;
     t.tx_buffer = &data;
     spi_device_polling_transmit(spi_, &t);
   }
@@ -180,30 +208,31 @@ private:
     uint16_t swapped = __builtin_bswap16(val);
     gpio_set_level(dc_, 1);
     spi_transaction_t t = {};
-    t.length = 16;
+    t.length = kBitsPerByte * 2;
     t.tx_buffer = &swapped;
     spi_device_polling_transmit(spi_, &t);
   }
 
   void setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
-    writeCommand(0x2A);
+    writeCommand(kCmdColumnAddrSet);
     writeData16(x0);
     writeData16(x1);
-    writeCommand(0x2B);
+    writeCommand(kCmdPageAddrSet);
     writeData16(y0);
     writeData16(y1);
-    writeCommand(0x2C);
+    writeCommand(kCmdMemWrite);
   }
 
   void drawPixel(int16_t x, int16_t y, uint16_t colour) {
-    if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT)
+    if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) {
       return;
+    }
     setAddrWindow(x, y, x, y);
     writeData16(colour);
   }
 
   // clang-format off
-  static constexpr uint8_t font5x7[][5] = {
+  static constexpr std::array<std::array<uint8_t, kFontGlyphWidth>, 95> font5x7 = {{
     {0x00,0x00,0x00,0x00,0x00}, // ' '
     {0x00,0x00,0x5F,0x00,0x00}, // '!'
     {0x00,0x07,0x00,0x07,0x00}, // '"'
@@ -299,7 +328,7 @@ private:
     {0x00,0x00,0x7F,0x00,0x00}, // '|'
     {0x00,0x41,0x36,0x08,0x00}, // '}'
     {0x10,0x08,0x08,0x10,0x08}, // '~'
-  };
+  }};
   // clang-format on
 };
 

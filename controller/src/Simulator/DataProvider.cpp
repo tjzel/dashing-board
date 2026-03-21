@@ -1,4 +1,5 @@
 #include <DataProvider.hpp>
+#include <algorithm>
 
 int DataProvider::get() {
   const auto value = value_;
@@ -40,8 +41,7 @@ SpeedAndRPM SpeedAndRPMDataProvider::get() {
 
   // Step speed.
   speed_ += sign_ * step_;
-  if (speed_ < 0)
-    speed_ = 0;
+  speed_ = std::max(speed_, 0);
 
   // Derive RPM from speed and current gear.
   rpm_ = speed_ * kphToRpm * gearRatios[gear_ - 1] * finalGearRatio;
