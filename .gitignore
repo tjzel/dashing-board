@@ -30,3 +30,6 @@ Testing
 
 # Python
 **/__pycache__
+
+# Claude
+.claude
