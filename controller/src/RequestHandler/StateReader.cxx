@@ -1,7 +1,7 @@
-#include "StateReader.hpp"
-#include "Message.hpp"
-#include "Utils.hpp"
-#include <ICommunicator.hpp>
+#include "StateReader.hxx"
+#include "Message.hxx"
+#include "Utils.hxx"
+#include <ICommunicator.hxx>
 #include <cassert>
 #include <iostream>
 #include <utility>

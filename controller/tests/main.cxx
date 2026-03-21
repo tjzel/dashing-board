@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <DiagnosticCommands.hpp>
-#include <Simulator.hpp>
+#include <DiagnosticCommands.hxx>
+#include <Simulator.hxx>
 #include <vector>
 
 constexpr double MIN_DIFFERENCE = 100. / 255;

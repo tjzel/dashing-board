@@ -1,11 +1,11 @@
 #ifndef DATA_LINK_HPP
 #define DATA_LINK_HPP
 
-#include <DiagnosticCommands.hpp>
-#include <EcuMock.hpp>
-#include <ICommunicator.hpp>
-#include <Message.hpp>
-#include <RequestHandler.hpp>
+#include <DiagnosticCommands.hxx>
+#include <EcuMock.hxx>
+#include <ICommunicator.hxx>
+#include <Message.hxx>
+#include <RequestHandler.hxx>
 #include <span>
 #include <utility>
 

@@ -3,14 +3,14 @@
 
 #include <Arduino.h>
 #include <BLEDataServer.hpp>
-#include <Communicators.hpp>
-#include <DataFrame.hpp>
-#include <DataLink.hpp>
-#include <DataSources.hpp>
-#include <DiagnosticCommands.hpp>
-#include <EcuMock.hpp>
+#include <Communicators.hxx>
+#include <DataFrame.hxx>
+#include <DataLink.hxx>
+#include <DataSources.hxx>
+#include <DiagnosticCommands.hxx>
+#include <EcuMock.hxx>
 #include <HardwareSerial.h>
-#include <RequestHandler.hpp>
+#include <RequestHandler.hxx>
 #include <SerialCommunicator.hpp>
 
 // BluetoothSerial serialBT;

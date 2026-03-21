@@ -1,8 +1,8 @@
-#include <Communicators.hpp>
-#include <DiagnosticCommands.hpp>
-#include <Parser.hpp>
-#include <RequestHandler.hpp>
-#include <Utils.hpp>
+#include <Communicators.hxx>
+#include <DiagnosticCommands.hxx>
+#include <Parser.hxx>
+#include <RequestHandler.hxx>
+#include <Utils.hxx>
 #include <iostream>
 #include <string>
 

@@ -1,6 +1,6 @@
 #ifndef ICOMMUNICATOR_HPP
 #define ICOMMUNICATOR_HPP
-#include <DiagnosticCommands.hpp>
+#include <DiagnosticCommands.hxx>
 #include <concepts>
 #include <functional>
 #include <vector>

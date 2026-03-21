@@ -1,8 +1,8 @@
 #ifndef MESSAGE_HPP
 #define MESSAGE_HPP
 
-#include <DiagnosticCommands.hpp>
-#include <ICommunicator.hpp>
+#include <DiagnosticCommands.hxx>
+#include <ICommunicator.hxx>
 #include <span>
 #include <vector>
 

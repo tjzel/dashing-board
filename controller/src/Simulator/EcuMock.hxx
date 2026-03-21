@@ -1,15 +1,15 @@
 #ifndef ECU_MOCK_HPP
 #define ECU_MOCK_HPP
 
-#include <DataProvider.hpp>
-#include <DataSources.hpp>
-#include <DiagnosticCommands.hpp>
-#include <EcuResponder.hpp>
-#include <ICommunicator.hpp>
-#include <Message.hpp>
-#include <Parser.hpp>
-#include <StateReader.hpp>
-#include <Utils.hpp>
+#include <DataProvider.hxx>
+#include <DataSources.hxx>
+#include <DiagnosticCommands.hxx>
+#include <EcuResponder.hxx>
+#include <ICommunicator.hxx>
+#include <Message.hxx>
+#include <Parser.hxx>
+#include <StateReader.hxx>
+#include <Utils.hxx>
 #include <cassert>
 
 /* #region Declaration */

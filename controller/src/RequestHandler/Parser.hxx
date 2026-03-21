@@ -1,6 +1,6 @@
 #ifndef PARSER_HPP
 #define PARSER_HPP
-#include <DiagnosticCommands.hpp>
+#include <DiagnosticCommands.hxx>
 #include <cassert>
 #include <cstddef>
 #include <span>

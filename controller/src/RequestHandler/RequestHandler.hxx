@@ -1,11 +1,11 @@
 #ifndef REQUEST_HANDLER_HPP
 #define REQUEST_HANDLER_HPP
-#include <DataFrame.hpp>
-#include <DiagnosticCommands.hpp>
-#include <ICommunicator.hpp>
-#include <Parser.hpp>
-#include <StateReader.hpp>
-#include <Utils.hpp>
+#include <DataFrame.hxx>
+#include <DiagnosticCommands.hxx>
+#include <ICommunicator.hxx>
+#include <Parser.hxx>
+#include <StateReader.hxx>
+#include <Utils.hxx>
 #include <map>
 #include <vector>
 

@@ -1,8 +1,8 @@
 #include <Arduino.h>
-#include <Communicators.hpp>
-#include <DataFrame.hpp>
-#include <DiagnosticCommands.hpp>
-#include <RequestHandler.hpp>
+#include <Communicators.hxx>
+#include <DataFrame.hxx>
+#include <DiagnosticCommands.hxx>
+#include <RequestHandler.hxx>
 #include <SerialCommunicator.hpp>
 
 constexpr auto serialCommunicatorNumber = 2;

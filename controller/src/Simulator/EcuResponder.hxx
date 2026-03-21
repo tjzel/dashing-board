@@ -1,11 +1,11 @@
 #ifndef ECU_RESPONDER_HPP
 #define ECU_RESPONDER_HPP
 
-#include <DataProvider.hpp>
-#include <DataSources.hpp>
-#include <DiagnosticCommands.hpp>
-#include <Message.hpp>
-#include <Parser.hpp>
+#include <DataProvider.hxx>
+#include <DataSources.hxx>
+#include <DiagnosticCommands.hxx>
+#include <Message.hxx>
+#include <Parser.hxx>
 #include <cassert>
 #include <type_traits>
 

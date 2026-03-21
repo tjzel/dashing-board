@@ -1,9 +1,9 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#include <DiagnosticCommands.hpp>
-#include <ICommunicator.hpp>
-#include <Message.hpp>
+#include <DiagnosticCommands.hxx>
+#include <ICommunicator.hxx>
+#include <Message.hxx>
 #include <span>
 
 Byte calculateChecksum(Byte header, Byte target, Byte source, const std::span<const Byte> &data);

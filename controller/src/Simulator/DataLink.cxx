@@ -1,8 +1,8 @@
-#include <DataLink.hpp>
-#include <DiagnosticCommands.hpp>
-#include <Parser.hpp>
-#include <RequestHandler.hpp>
-#include <Utils.hpp>
+#include <DataLink.hxx>
+#include <DiagnosticCommands.hxx>
+#include <Parser.hxx>
+#include <RequestHandler.hxx>
+#include <Utils.hxx>
 
 using DiagnosticCommands::ENGINE_RPM;
 

@@ -2,9 +2,9 @@
 #define SERIAL_COMMUNICATOR_HPP
 
 #include <Arduino.h>
-#include <DiagnosticCommands.hpp>
+#include <DiagnosticCommands.hxx>
 #include <HardwareSerial.h>
-#include <ICommunicator.hpp>
+#include <ICommunicator.hxx>
 
 using Byte = uint8_t;
 

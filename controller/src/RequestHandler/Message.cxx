@@ -1,5 +1,5 @@
-#include <Message.hpp>
-#include <Utils.hpp>
+#include <Message.hxx>
+#include <Utils.hxx>
 #include <algorithm>
 
 Byte Message::calculateChecksum(const Byte format, const Byte target, const Byte source,

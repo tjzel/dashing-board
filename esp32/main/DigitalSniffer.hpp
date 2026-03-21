@@ -2,7 +2,7 @@
 #define DIGITAL_SNIFFER_HPP
 
 #include <Arduino.h>
-#include <Communicators.hpp>
+#include <Communicators.hxx>
 #include <HardwareSerial.h>
 #include <SerialCommunicator.hpp>
 

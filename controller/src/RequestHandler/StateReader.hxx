@@ -1,7 +1,7 @@
 #ifndef STATE_READER_HPP
 #define STATE_READER_HPP
 
-#include <Message.hpp>
+#include <Message.hxx>
 #include <cstdint>
 #include <functional>
 #include <vector>

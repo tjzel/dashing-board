@@ -1,17 +1,17 @@
 #ifndef DISPLAY_HANDLER_HPP
 #define DISPLAY_HANDLER_HPP
 
-#include <Communicators.hpp>
-#include <DataFrame.hpp>
-#include <DataLink.hpp>
-#include <DataSources.hpp>
-#include <DiagnosticCommands.hpp>
-#include <EcuMock.hpp>
+#include <Communicators.hxx>
+#include <DataFrame.hxx>
+#include <DataLink.hxx>
+#include <DataSources.hxx>
+#include <DiagnosticCommands.hxx>
+#include <EcuMock.hxx>
 #include <ILI9341Display.hpp>
-#include <RequestHandler.hpp>
+#include <RequestHandler.hxx>
 #include <SerialCommunicator.hpp>
 
-#include <GearDetector.hpp>
+#include <GearDetector.hxx>
 
 #include <cstdio>
 #include <esp_log.h>
@@ -38,7 +38,7 @@ int previousSpeed = -1;
 int previousRpm = -1;
 int previousGear = -1;
 
-// Gear ratios from DataProvider.hpp simulator.
+// Gear ratios from DataProvider.hxx simulator.
 // tireCircumference = 14 * 2.4 * 0.0254 * π, radius = circumference / (2π)
 static constexpr double TIRE_RADIUS = 14 * 2.4 * 0.0254 / 2.0;
 GearDetector gearDetector(4.105, {3.454, 1.904, 1.28, 0.966, 0.757}, TIRE_RADIUS);

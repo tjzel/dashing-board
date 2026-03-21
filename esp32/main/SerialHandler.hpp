@@ -4,10 +4,10 @@
 #include <Arduino.h>
 #include <BLEDataServer.hpp>
 #include <BluetoothSerial.h>
-#include <Communicators.hpp>
-#include <DiagnosticCommands.hpp>
+#include <Communicators.hxx>
+#include <DiagnosticCommands.hxx>
 #include <HardwareSerial.h>
-#include <RequestHandler.hpp>
+#include <RequestHandler.hxx>
 #include <SerialCommunicator.hpp>
 
 constexpr auto serialCommunicatorNumber = 2;

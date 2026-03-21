@@ -1,12 +1,12 @@
 #ifndef COMMUNICATORS_HPP
 #define COMMUNICATORS_HPP
 
-#include "DataLink.hpp"
-#include <DiagnosticCommands.hpp>
-#include <EcuMock.hpp>
-#include <ICommunicator.hpp>
-#include <Message.hpp>
-#include <RequestHandler.hpp>
+#include "DataLink.hxx"
+#include <DiagnosticCommands.hxx>
+#include <EcuMock.hxx>
+#include <ICommunicator.hxx>
+#include <Message.hxx>
+#include <RequestHandler.hxx>
 #include <string>
 
 class RequestHandlerDataLinkCommunicator {
