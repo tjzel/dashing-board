@@ -1,9 +1,9 @@
 #ifndef DATA_SOURCES_HPP
 #define DATA_SOURCES_HPP
 
-#include "DiagnosticCommands.hpp"
 #include <DataFrame.hpp>
 #include <DataProvider.hpp>
+#include <DiagnosticCommands.hpp>
 #include <TimeProvider.hpp>
 #include <concepts>
 #include <vector>
@@ -59,8 +59,9 @@ static_assert(IDataProviderManager<RealDataProviderManager>);
 
 class FakeDataProviderManager {
 
-  DataProvider rpmProvider_{800, 100, 1, 800, 4000};
-  DataProvider speedProvider_{10, 1, 1, 10, 140};
+  // DataProvider rpmProvider_{800, 100, 1, 800, 4000};
+  // DataProvider speedProvider_{10, 1, 1, 10, 140};
+  SpeedAndRPMDataProvider speedAndRpmProvider_{10, 1, 1, 10, 120};
   DataProvider engineLoadProvider_{15, 2, 1, 0, 100};
   DataProvider throttlePositionProvider_{10, 5, 1, 0, 100};
   DataProvider uptimeProvider_{15, 1, 1, 5, 60};
@@ -72,10 +73,12 @@ class FakeDataProviderManager {
 public:
   template <DiagnosticCommands::Command TCommand> typename TCommand::Encoding::ValueType get() {
     if constexpr (std::is_same_v<TCommand, DiagnosticCommands::ENGINE_RPM>) {
-      return rpmProvider_.get();
+      // return rpmProvider_.get();
+      return speedAndRpmProvider_.get().rpm;
     }
     if constexpr (std::is_same_v<TCommand, DiagnosticCommands::VEHICLE_SPEED>) {
-      return speedProvider_.get();
+      // return speedProvider_.get();
+      return speedAndRpmProvider_.get().speed;
     }
     if constexpr (std::is_same_v<TCommand, DiagnosticCommands::ENGINE_LOAD>) {
       return engineLoadProvider_.get();
@@ -98,6 +101,7 @@ public:
     if constexpr (std::is_same_v<TCommand, DiagnosticCommands::ENGINE_FUEL_RATE>) {
       return engineFuelRateProvider_.get();
     }
+    return {};
   }
 };
 

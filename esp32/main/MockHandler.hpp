@@ -54,6 +54,7 @@ void loop() {
 
   auto dataFrame = requestHandler.getDataFrame();
   server.update(dataFrame);
+  delay(100);
 }
 
 #endif // MOCK_HANDLER_HPP
