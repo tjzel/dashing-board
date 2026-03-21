@@ -18,4 +18,5 @@ CompileFlags:
     - -isystem/Users/bigpoppe/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include
   Remove:
     - -mlongcalls
+    - -fno-shrink-wrap
   CompilationDatabase: esp32/build/esp-idf/controller

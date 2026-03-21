@@ -1,95 +1,138 @@
 #include <SerialCommunicator.hxx>
 
-int SerialCommunicator::read(const size_t timeout) {
-  const auto start = millis();
-  while (!_serial.available() && millis() - start < timeout) {
-    // TODO: This is ill-formed.
-    ;
+#include <array>
+
+static constexpr size_t kUartRxBufSize = 256;
+static constexpr size_t kUartTxBufSize = 0;
+static constexpr int kFastInitPulseMs = 25;
+
+// ── SerialCommunicator ──
+
+SerialCommunicator::SerialCommunicator(uart_port_t port, gpio_num_t rx, gpio_num_t tx,
+                                       DebugSerialCommunicator &debugComm)
+    : port_(port), rx_(rx), tx_(tx), debugComm_(debugComm) {}
+
+void SerialCommunicator::uartInstall() {
+  if (installed_) {
+    uartUninstall();
   }
-  if (!_serial.available()) {
-    // debugComm_.println("Timeout");
-    return -1;
-  }
-  return _serial.read();
-  // const auto read = _serial.read();
-  // debugComm_.println(read);
-  // return read;
+  const uart_config_t cfg = {
+      .baud_rate = static_cast<int>(kBaudRate),
+      .data_bits = UART_DATA_8_BITS,
+      .parity = UART_PARITY_DISABLE,
+      .stop_bits = UART_STOP_BITS_1,
+      .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+      .rx_flow_ctrl_thresh = 0,
+      .source_clk = UART_SCLK_DEFAULT,
+      .flags = {},
+  };
+  ESP_ERROR_CHECK(uart_param_config(port_, &cfg));
+  ESP_ERROR_CHECK(uart_set_pin(port_, tx_, rx_, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+  ESP_ERROR_CHECK(uart_driver_install(port_, kUartRxBufSize, kUartTxBufSize, 0, nullptr, 0));
+  installed_ = true;
 }
 
-bool SerialCommunicator::available() { return _serial.available(); }
+void SerialCommunicator::uartUninstall() {
+  if (installed_) {
+    uart_driver_delete(port_);
+    installed_ = false;
+  }
+}
+
+int SerialCommunicator::read(const size_t timeout) {
+  uint8_t byte = 0;
+  const int n = uart_read_bytes(port_, &byte, 1, pdMS_TO_TICKS(timeout));
+  if (n <= 0) {
+    return -1;
+  }
+  return byte;
+}
+
+bool SerialCommunicator::available() {
+  size_t len = 0;
+  uart_get_buffered_data_len(port_, &len);
+  return len > 0;
+}
 
 void SerialCommunicator::write(const std::vector<Byte> &message) {
-  // TODO: This is terrible. This should use a proper queue instead
-  // and note that it doesn't guard single byte writes.
-  // debugComm_.println("Elapsed: ");
-  // std::string elapsed = std::to_string(millis() - _lastRequest);
-  // debugComm_.println(elapsed);
-  if (millis() - _lastRequest < _requestCooldown) {
-    delay(_requestCooldown - millis() + _lastRequest);
+  const uint32_t now = millisNow();
+  if (now - lastRequestMs_ < kRequestCooldownMs) {
+    vTaskDelay(pdMS_TO_TICKS(kRequestCooldownMs - (now - lastRequestMs_)));
   }
-  _lastRequest = millis();
-  // debugComm_.println("Sending: ");
-  // for (auto byte : message) {
-  //   debugComm_.print(byte);
-  // };
-  // debugComm_.println();
+  lastRequestMs_ = millisNow();
 
-  for (auto byte : message) {
-    _serial.write(byte);
-  };
-
-  // debugComm_.println("Sent");
-
-  for (auto byte : message) {
-    // debugComm_.print(read());
+  uart_write_bytes(port_, message.data(), message.size());
+  // Drain K-line echo (one echo byte per byte sent).
+  for (size_t i = 0; i < message.size(); i++) {
     read();
-  };
+  }
 }
 
 void SerialCommunicator::write(Byte byte) {
-  _serial.write(byte);
-  // We need to dump the echo.
+  uart_write_bytes(port_, &byte, 1);
+  // Drain echo.
   read();
 }
 
 void SerialCommunicator::init() {
-  _serial.end();
-  // gpio_reset_pin(_rx);
-  // gpio_reset_pin(_tx);
-  pinMode(_rx, INPUT_PULLUP);
-  pinMode(_tx, OUTPUT);
-  digitalWrite(_tx, LOW);
-  delay(25);
-  digitalWrite(_tx, HIGH);
-  delay(25);
-  // gpio_reset_pin(_tx);
-  // pinMode(_rx, INPUT_PULLUP);
-  _serial.begin(_baudRate, SERIAL_8N1, _rx, _tx);
-};
+  uartUninstall();
 
-HardwareSerial &SerialCommunicator::sniffInit() {
-  _serial.end();
-  pinMode(_rx, INPUT_PULLUP);
-  pinMode(_tx, OUTPUT);
-  _serial.begin(_baudRate, SERIAL_8N1, _rx, _tx);
-  return _serial;
+  // K-line fast init: pull TX low then high for 25ms each.
+  gpio_config_t tx_conf = {};
+  tx_conf.pin_bit_mask = 1ULL << tx_;
+  tx_conf.mode = GPIO_MODE_OUTPUT;
+  gpio_config(&tx_conf);
+
+  gpio_config_t rx_conf = {};
+  rx_conf.pin_bit_mask = 1ULL << rx_;
+  rx_conf.mode = GPIO_MODE_INPUT;
+  rx_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+  gpio_config(&rx_conf);
+
+  gpio_set_level(tx_, 0);
+  vTaskDelay(pdMS_TO_TICKS(kFastInitPulseMs));
+  gpio_set_level(tx_, 1);
+  vTaskDelay(pdMS_TO_TICKS(kFastInitPulseMs));
+
+  uartInstall();
 }
 
-void SerialCommunicator::setOnNewData(std::function<void()> /*onNewData*/) {}
+void SerialCommunicator::setOnNewData(const std::function<void()> & /*onNewData*/) {}
 
-SerialCommunicator::SerialCommunicator(const uint serialNumber, const gpio_num_t rx,
-                                       const gpio_num_t tx, DebugSerialCommunicator &debugComm)
-    : _serialNumber(serialNumber), _rx(rx), _tx(tx), _serial(HardwareSerial(serialNumber)),
-      debugComm_(debugComm) {}
+// ── DebugSerialCommunicator ──
+
+static constexpr int kDebugBaudRate = 115200;
+
+DebugSerialCommunicator::DebugSerialCommunicator(uart_port_t port) : port_(port) {
+  const uart_config_t cfg = {
+      .baud_rate = kDebugBaudRate,
+      .data_bits = UART_DATA_8_BITS,
+      .parity = UART_PARITY_DISABLE,
+      .stop_bits = UART_STOP_BITS_1,
+      .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+      .rx_flow_ctrl_thresh = 0,
+      .source_clk = UART_SCLK_DEFAULT,
+      .flags = {},
+  };
+  uart_param_config(port_, &cfg);
+  uart_set_pin(port_, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE,
+               UART_PIN_NO_CHANGE);
+  // UART0 is typically already installed by ESP-IDF for console output.
+  // Only install if not already present.
+  if (!uart_is_driver_installed(port_)) {
+    uart_driver_install(port_, kUartRxBufSize, kUartTxBufSize, 0, nullptr, 0);
+  }
+}
 
 void DebugSerialCommunicator::print(Byte byte) {
-  if (byte < 0x10) {
-    _serial.print('0');
-  }
-  _serial.print(byte, HEX);
+  std::array<char, 3> buf{};
+  snprintf(buf.data(), buf.size(), "%02X", byte);
+  uart_write_bytes(port_, buf.data(), 2);
 }
 
-void DebugSerialCommunicator::print(const std::string &str) { _serial.print(str.c_str()); }
+void DebugSerialCommunicator::print(const std::string &str) {
+  uart_write_bytes(port_, str.data(), str.size());
+}
 
 void DebugSerialCommunicator::println(Byte byte) {
   print(byte);
@@ -97,10 +140,10 @@ void DebugSerialCommunicator::println(Byte byte) {
 }
 
 void DebugSerialCommunicator::println(const std::string &str) {
-  _serial.println(str.c_str());
+  uart_write_bytes(port_, str.data(), str.size());
   println();
 }
 
-void DebugSerialCommunicator::println() { _serial.println(); }
-
-DebugSerialCommunicator::DebugSerialCommunicator(HardwareSerial &serial) : _serial(serial) {}
+void DebugSerialCommunicator::println() {
+  uart_write_bytes(port_, "\r\n", 2);
+}

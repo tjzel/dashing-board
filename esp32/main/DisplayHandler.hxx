@@ -26,7 +26,7 @@ static const char *TAG = "display";
 ILI9341Display tft(GPIO_NUM_5, GPIO_NUM_16, GPIO_NUM_4, GPIO_NUM_23, GPIO_NUM_18, GPIO_NUM_15);
 
 // ── Data pipeline (same as MockHandler) ──
-DebugSerialCommunicator debugSerialCommunicator(Serial);
+DebugSerialCommunicator debugSerialCommunicator(UART_NUM_0);
 DataLink dataLink;
 RequestHandlerDataLinkCommunicator requestHandlerDataLinkCommunicator(dataLink);
 EcuMockDataLinkCommunicator ecuMockDataLinkCommunicator(dataLink);
@@ -136,12 +136,7 @@ void drawSpeed(int speed) {
 }
 
 void setup() {
-  const auto debugSerialBaudRate = 115200;
-  Serial.begin(debugSerialBaudRate);
-  while (!Serial) {
-  };
-  debugSerialCommunicator.println();
-  debugSerialCommunicator.println("debugSerialCommunicator ready");
+  ESP_LOGI(TAG, "debugSerialCommunicator ready");
 
   // BOOT button as input with pull-up.
   gpio_config_t btn_conf = {};
