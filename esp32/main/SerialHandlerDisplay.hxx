@@ -17,8 +17,8 @@
 static const char *TAG_SHD = "serial_handler_display";
 
 // ── K-line pins ──
-static constexpr gpio_num_t kKLineRx = GPIO_NUM_25;
-static constexpr gpio_num_t kKLineTx = GPIO_NUM_27;
+static constexpr gpio_num_t kKLineRx = GPIO_NUM_25; // YELLOW
+static constexpr gpio_num_t kKLineTx = GPIO_NUM_27; // BLUE
 static constexpr int kMaxInitRetries = 20;
 static constexpr int kInitRetryDelayMs = 500;
 
