@@ -6,20 +6,16 @@
 
 class GearDetector {
 public:
-  GearDetector(double finalGearRatio, std::vector<double> gearRatios, double tireRadiusMeters)
+  GearDetector(double finalGearRatio, std::vector<double> gearRatios, double tireCircumference)
       : finalGearRatio_(finalGearRatio), gearRatios_(std::move(gearRatios)),
-        tireRadiusMeters_(tireRadiusMeters) {}
+        tireCircumference_(tireCircumference) {}
 
   // Returns the detected gear (1-indexed), or 0 if neutral/unknown.
-  int detect(int rpm, int speedKmh) const {
+  [[nodiscard]] int detect(int rpm, int speedKmh) const {
     if (rpm <= 0 || speedKmh <= 0)
       return 0;
 
-    // totalRatio = rpm / (speed * kphToRpm)
-    // where kphToRpm = (1000 / 60 / tireCircumference) * 2
-    constexpr double pi = 3.14159265358979323846;
-    double tireCircumference = 2.0 * pi * tireRadiusMeters_;
-    double kphToRpm = (1000.0 / 60.0 / tireCircumference) * 2.0;
+    double kphToRpm = 1000.0 / 60.0 / tireCircumference_;
     double measuredGearRatio = rpm / (speedKmh * kphToRpm * finalGearRatio_);
 
     int bestGear = 0;
@@ -42,7 +38,7 @@ public:
 private:
   double finalGearRatio_;
   std::vector<double> gearRatios_;
-  double tireRadiusMeters_;
+  double tireCircumference_;
 };
 
 #endif // GEAR_DETECTOR_HPP

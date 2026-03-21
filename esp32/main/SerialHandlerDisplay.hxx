@@ -6,6 +6,7 @@
 #include <ILI9341Display.hxx>
 #include <RequestHandler.hxx>
 #include <SerialCommunicator.hxx>
+#include <Suzuki.hxx>
 
 #include <cstdio>
 #include <driver/gpio.h>
@@ -30,8 +31,9 @@ SerialCommunicator serialCommunicator(UART_NUM_2, kKLineRx, kKLineTx, debugSeria
 RequestHandler requestHandler(serialCommunicator, debugSerialCommunicator);
 
 // ── Gear detection ──
-static constexpr double TIRE_RADIUS = 14 * 2.4 * 0.0254 / 2.0;
-GearDetector gearDetector(4.105, {3.454, 1.904, 1.28, 0.966, 0.757}, TIRE_RADIUS);
+GearDetector gearDetector(Suzuki::FINAL_GEAR_RATIO,
+                          {Suzuki::GEAR_RATIOS.begin(), Suzuki::GEAR_RATIOS.end()},
+                          Suzuki::TIRE_CIRCUMFERENCE);
 
 int previousSpeed = -1;
 int previousRpm = -1;

@@ -7,11 +7,11 @@
 #include <DataSources.hxx>
 #include <DiagnosticCommands.hxx>
 #include <EcuMock.hxx>
+#include <GearDetector.hxx>
 #include <ILI9341Display.hxx>
 #include <RequestHandler.hxx>
 #include <SerialCommunicator.hxx>
-
-#include <GearDetector.hxx>
+#include <Suzuki.hxx>
 
 #include <cstdio>
 #include <esp_log.h>
@@ -38,10 +38,9 @@ int previousSpeed = -1;
 int previousRpm = -1;
 int previousGear = -1;
 
-// Gear ratios from DataProvider.hxx simulator.
-// tireCircumference = 14 * 2.4 * 0.0254 * π, radius = circumference / (2π)
-static constexpr double TIRE_RADIUS = 14 * 2.4 * 0.0254 / 2.0;
-GearDetector gearDetector(4.105, {3.454, 1.904, 1.28, 0.966, 0.757}, TIRE_RADIUS);
+GearDetector gearDetector(Suzuki::FINAL_GEAR_RATIO,
+                          {Suzuki::GEAR_RATIOS.begin(), Suzuki::GEAR_RATIOS.end()},
+                          Suzuki::TIRE_CIRCUMFERENCE);
 
 // BOOT button on GPIO 0 (active low, has internal pull-up).
 static constexpr gpio_num_t BUTTON_PIN = GPIO_NUM_0;
@@ -95,7 +94,8 @@ void drawRpmText(int rpm) {
   snprintf(buf, sizeof(buf), "%5d", rpm);
   int16_t w = tft.textWidth(buf, RPM_TEXT_SIZE);
   int16_t x = RPM_BAR_X + RPM_BAR_W - w;
-  tft.drawString(x, RPM_TEXT_Y, buf, ILI9341Display::DARKGREY, ILI9341Display::BLACK, RPM_TEXT_SIZE);
+  tft.drawString(x, RPM_TEXT_Y, buf, ILI9341Display::DARKGREY, ILI9341Display::BLACK,
+                 RPM_TEXT_SIZE);
 }
 
 void drawRpmBar(int rpm) {
@@ -120,7 +120,8 @@ void drawGear(int gear) {
     snprintf(buf, sizeof(buf), "N");
   else
     snprintf(buf, sizeof(buf), "%d", gear);
-  tft.drawString(GEAR_X, GEAR_Y, buf, ILI9341Display::RED, ILI9341Display::BLACK, SPEED_SIZE_X, SPEED_SIZE_Y);
+  tft.drawString(GEAR_X, GEAR_Y, buf, ILI9341Display::RED, ILI9341Display::BLACK, SPEED_SIZE_X,
+                 SPEED_SIZE_Y);
 }
 
 void drawSpeed(int speed) {
@@ -132,7 +133,8 @@ void drawSpeed(int speed) {
   // Offset right so speed doesn't overlap the gear indicator.
   int16_t speedAreaLeft = GEAR_X + (6 * SPEED_SIZE_X) + 10;
   int16_t x = speedAreaLeft + (ILI9341Display::WIDTH - speedAreaLeft - w) / 2;
-  tft.drawString(x, SPEED_Y, buf, ILI9341Display::RED, ILI9341Display::BLACK, SPEED_SIZE_X, SPEED_SIZE_Y);
+  tft.drawString(x, SPEED_Y, buf, ILI9341Display::RED, ILI9341Display::BLACK, SPEED_SIZE_X,
+                 SPEED_SIZE_Y);
 }
 
 void setup() {

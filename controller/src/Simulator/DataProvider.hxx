@@ -1,7 +1,8 @@
 #ifndef DATA_PROVIDER_HPP
 #define DATA_PROVIDER_HPP
 
-#include <utility>
+#include <Suzuki.hxx>
+
 class DataProvider {
 public:
   int get();
@@ -29,16 +30,7 @@ public:
 private:
   int calculateRPM();
 
-  static double finalGearRatio;   // = 4.105;
-  static double reverseGearRatio; // = 3.270
-  static double firstGearRatio;   // = 3.454;
-  static double secondGearRatio;  // = 1.904;
-  static double thirdGearRatio;   // = 1.28;
-  static double fourthGearRatio;  // = 0.966;
-  static double fifthGearRatio;   // = 0.757;
-
-  static double tireCircumference; // = 14 * 2.4 * 0.0254 * Math.PI;
-  static double kphToRpm;          // = (1000 / 60 / tireCircumference) * 2;
+  static constexpr double kKphToRpm = 1000.0 / 60.0 / Suzuki::TIRE_CIRCUMFERENCE;
 
   int speed_;
   int rpm_;

@@ -1,5 +1,7 @@
 #include <DataProvider.hxx>
+
 #include <algorithm>
+#include <iostream>
 
 int DataProvider::get() {
   const auto value = value_;
@@ -18,25 +20,12 @@ DataProvider::DataProvider(int initialValue, int step, int sign, int bottomThres
     : value_(initialValue), step_(step), sign_(sign), bottomThreshold_(bottomThreshold),
       topThreshold_(topThreshold) {}
 
-double SpeedAndRPMDataProvider::finalGearRatio = 4.105;
-double SpeedAndRPMDataProvider::firstGearRatio = 3.454;
-double SpeedAndRPMDataProvider::secondGearRatio = 1.904;
-double SpeedAndRPMDataProvider::thirdGearRatio = 1.28;
-double SpeedAndRPMDataProvider::fourthGearRatio = 0.966;
-double SpeedAndRPMDataProvider::fifthGearRatio = 0.757;
-double SpeedAndRPMDataProvider::tireCircumference = 14 * 2.4 * 0.0254 * 3.14;
-double SpeedAndRPMDataProvider::kphToRpm =
-    (1000 / 60 / SpeedAndRPMDataProvider::tireCircumference) * 2;
-
 SpeedAndRPMDataProvider::SpeedAndRPMDataProvider(int initialSpeed, int step, int sign,
                                                  int bottomThreshold, int topThreshold)
     : speed_(initialSpeed), rpm_(0), step_(step), sign_(sign), bottomThreshold_(bottomThreshold),
       topThreshold_(topThreshold) {}
 
 SpeedAndRPM SpeedAndRPMDataProvider::get() {
-  static const double gearRatios[] = {firstGearRatio, secondGearRatio, thirdGearRatio,
-                                      fourthGearRatio, fifthGearRatio};
-
   const auto speed = speed_;
 
   // Step speed.
@@ -44,18 +33,23 @@ SpeedAndRPM SpeedAndRPMDataProvider::get() {
   speed_ = std::max(speed_, 0);
 
   // Derive RPM from speed and current gear.
-  rpm_ = speed_ * kphToRpm * gearRatios[gear_ - 1] * finalGearRatio;
+  rpm_ = static_cast<int>(speed_ * kKphToRpm * Suzuki::GEAR_RATIOS.at(gear_ - 1) *
+                          Suzuki::FINAL_GEAR_RATIO);
+
+  std::cout << "Speed: " << speed_ << " km/h, RPM: " << rpm_ << ", Gear: " << gear_ << std::endl;
 
   // Shift up at 6000 RPM.
   if (rpm_ >= 6000 && gear_ < 5) {
     gear_++;
-    rpm_ = speed_ * kphToRpm * gearRatios[gear_ - 1] * finalGearRatio;
+    rpm_ = static_cast<int>(speed_ * kKphToRpm * Suzuki::GEAR_RATIOS.at(gear_ - 1) *
+                            Suzuki::FINAL_GEAR_RATIO);
   }
 
   // Shift down at 2000 RPM.
   if (rpm_ <= 2000 && gear_ > 1) {
     gear_--;
-    rpm_ = speed_ * kphToRpm * gearRatios[gear_ - 1] * finalGearRatio;
+    rpm_ = static_cast<int>(speed_ * kKphToRpm * Suzuki::GEAR_RATIOS.at(gear_ - 1) *
+                            Suzuki::FINAL_GEAR_RATIO);
   }
 
   // Bounce at limits.
