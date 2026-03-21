@@ -1,4 +1,3 @@
-
 #ifndef DIAGNOSTIC_COMMANDS_HPP
 #define DIAGNOSTIC_COMMANDS_HPP
 #include <cstdint>
