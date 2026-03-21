@@ -1,7 +1,6 @@
 #ifndef PROFILER_H
 #define PROFILER_H
 
-#include <Arduino.h>
 #include <cstdint>
 
 struct Profiler {

@@ -1,8 +1,22 @@
 #
-# Arduino ESP32
+# Serial Flasher Config
 #
-CONFIG_AUTOSTART_ARDUINO=y
-# end of Arduino ESP32
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+# end of Serial Flasher Config
+
+#
+# Partition Table
+#
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+# end of Partition Table
+
+#
+# Bluetooth / NimBLE
+#
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+# end of Bluetooth / NimBLE
 
 #
 # FREERTOS

@@ -1,15 +1,11 @@
 #ifndef BLE_DATA_SERVER_HPP
-#define BLE_DATA_SERVE_HPP
+#define BLE_DATA_SERVER_HPP
 
-#include <BLEDescriptor.h>
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEService.h>
-#include <BLEUUID.h>
-#include <BLEUtils.h>
 #include <DataFrame.hxx>
+
 #include <cstdint>
-#include <sys/types.h>
+#include <host/ble_hs.h>
+#include <string>
 
 class BLEDataServer {
 public:
@@ -17,15 +13,14 @@ public:
 
   void update(const DataFrame &data);
 
-  BLEDataServer(BLEServer &server, BLECharacteristic &jsonCharacteristic);
+  BLEDataServer(uint16_t connHandle, uint16_t jsonAttrHandle);
 
 private:
-  void updateConnected();
+  uint16_t connHandle_;
+  uint16_t jsonAttrHandle_;
+  bool connected_ = false;
 
-  BLEServer &server_;
-  BLECharacteristic &jsonCharacteristic_;
-  DataFrame data_ = {};
-  uint16_t updateCount_ = 0;
+  friend int bleGapEvent(struct ble_gap_event *event, void *arg);
 };
 
-#endif // BLE_DATA_SERVE_HPP
+#endif // BLE_DATA_SERVER_HPP

@@ -8,7 +8,7 @@ idf_component_register(
   INCLUDE_DIRS
   "."
   PRIV_REQUIRES
-  arduino-esp32
+  bt
   vfs
   fatfs
   controller

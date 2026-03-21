@@ -1,7 +1,6 @@
 #ifndef MOCK_HANDLER_HPP
 #define MOCK_HANDLER_HPP
 
-#include <Arduino.h>
 #include <BLEDataServer.hxx>
 #include <Communicators.hxx>
 #include <DataFrame.hxx>
@@ -9,13 +8,16 @@
 #include <DataSources.hxx>
 #include <DiagnosticCommands.hxx>
 #include <EcuMock.hxx>
-#include <HardwareSerial.h>
 #include <RequestHandler.hxx>
 #include <SerialCommunicator.hxx>
 
-// BluetoothSerial serialBT;
+#include <esp_log.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
-DebugSerialCommunicator debugSerialCommunicator(Serial);
+static const char *TAG_MH = "mock_handler";
+
+DebugSerialCommunicator debugSerialCommunicator(UART_NUM_0);
 DataLink dataLink;
 RequestHandlerDataLinkCommunicator requestHandlerDataLinkCommunicator(dataLink);
 EcuMockDataLinkCommunicator ecuMockDataLinkCommunicator(dataLink);
@@ -26,7 +28,7 @@ RequestHandler requestHandler(requestHandlerDataLinkCommunicator, debugSerialCom
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
 void requestHandlerInit(RequestHandler<TCommunicator, TDebugCommunicator> &requestHandler) {
   requestHandler.loadAvailability();
-  debugSerialCommunicator.println("Availability loaded");
+  ESP_LOGI(TAG_MH, "Availability loaded");
   requestHandler.printAvailableCommands();
   requestHandler.printAvailableForDataFrame();
 }
@@ -34,27 +36,20 @@ void requestHandlerInit(RequestHandler<TCommunicator, TDebugCommunicator> &reque
 BLEDataServer *bleServer = nullptr;
 
 void setup() {
-  const auto debugSerialBaudRate = 115200;
-  Serial.begin(debugSerialBaudRate);
-  while (!Serial) {
-    // Wait for serial port to connect.
-  };
-  debugSerialCommunicator.println();
-  debugSerialCommunicator.println("debugSerialCommunicator ready");
+  ESP_LOGI(TAG_MH, "debugSerialCommunicator ready");
 
   bleServer = BLEDataServer::createServer();
-  debugSerialCommunicator.println("BLE server created");
+  ESP_LOGI(TAG_MH, "BLE server created");
 
   requestHandlerInit(requestHandler);
-  debugSerialCommunicator.println("Request Handler initialized");
+  ESP_LOGI(TAG_MH, "Request Handler initialized");
 }
 
 void loop() {
   auto &server = *bleServer;
-
   auto dataFrame = requestHandler.getDataFrame();
   server.update(dataFrame);
-  delay(100);
+  vTaskDelay(pdMS_TO_TICKS(100));
 }
 
 #endif // MOCK_HANDLER_HPP

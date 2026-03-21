@@ -1,4 +1,1 @@
-dependencies:
-  espressif/arduino-esp32:
-    pre_release: true
-    version: "*"
+dependencies: {}

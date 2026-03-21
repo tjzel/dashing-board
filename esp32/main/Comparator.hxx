@@ -1,19 +1,21 @@
 #ifndef COMPARATOR_HPP
 #define COMPARATOR_HPP
 
-#include "esp_intr_alloc.h"
-#include <Arduino.h>
-#include <BLEDataServer.hxx>
-#include <BluetoothSerial.h>
 #include <Communicators.hxx>
 #include <DiagnosticCommands.hxx>
-#include <HardwareSerial.h>
 #include <RequestHandler.hxx>
 #include <SerialCommunicator.hxx>
+
 #include <cstdint>
 #include <driver/twai.h>
-#include <esp_err.h>
+#include <esp_intr_alloc.h>
+#include <esp_log.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include <hal/twai_types.h>
+#include <string>
+
+static const char *TAG_CMP = "comparator";
 
 static const twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 static const twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();
@@ -29,7 +31,7 @@ static const twai_general_config_t g_config = {.controller_id = 0,
                                                .clkout_divider = 0,
                                                .intr_flags = ESP_INTR_FLAG_INTRDISABLED};
 
-DebugSerialCommunicator debugSerialCommunicator(Serial);
+DebugSerialCommunicator debugSerialCommunicator(UART_NUM_0);
 
 constexpr uint32_t acceptedID673 = 673;
 constexpr uint32_t acceptedID784 = 784;
@@ -68,56 +70,52 @@ void log784() {
                        ((static_cast<uint32_t>(rx_message.data[1])) * 256)))));
 }
 
-constexpr auto serialCommunicatorNumber = 2;
+static constexpr gpio_num_t kKLineRx = GPIO_NUM_25;
+static constexpr gpio_num_t kKLineTx = GPIO_NUM_27;
 
-constexpr auto serialCommunicatorRx = GPIO_NUM_25;
-constexpr auto serialCommunicatorTx = GPIO_NUM_27;
-SerialCommunicator serialCommunicator(serialCommunicatorNumber, serialCommunicatorRx,
-                                      serialCommunicatorTx, debugSerialCommunicator);
-
+SerialCommunicator serialCommunicator(UART_NUM_2, kKLineRx, kKLineTx, debugSerialCommunicator);
 RequestHandler requestHandler(serialCommunicator, debugSerialCommunicator);
 
+static constexpr int kMaxInitRetries = 20;
+static constexpr int kInitRetryDelayMs = 500;
+
 template <ICommunicator TCommunicator, IDebugCommunicator TDebugCommunicator>
-void requestHandlerInit(RequestHandler<TCommunicator, TDebugCommunicator> &requestHandler) {
-  if (requestHandler.initializeCommunication()) {
-    debugSerialCommunicator.println("ECU initialized");
+void requestHandlerInit(RequestHandler<TCommunicator, TDebugCommunicator> &handler) {
+  if (handler.initializeCommunication()) {
+    ESP_LOGI(TAG_CMP, "ECU initialized");
   } else {
-    debugSerialCommunicator.println("ECU initialization failed");
+    ESP_LOGW(TAG_CMP, "ECU initialization failed, retrying...");
   }
-  while (!requestHandler.isCommunicationInitialized()) {
-    debugSerialCommunicator.println("Retrying ECU initialization");
-    requestHandler.initializeCommunication();
-  };
-  // TODO: Fix this delay.
-  delay(200);
 
-  requestHandler.loadAvailability();
-  debugSerialCommunicator.println("Availability loaded");
-  requestHandler.printAvailableCommands();
-  requestHandler.printAvailableForDataFrame();
+  int retries = 0;
+  while (!handler.isCommunicationInitialized() && retries < kMaxInitRetries) {
+    ESP_LOGW(TAG_CMP, "Retrying ECU initialization (%d/%d)", retries + 1, kMaxInitRetries);
+    handler.initializeCommunication();
+    retries++;
+    vTaskDelay(pdMS_TO_TICKS(kInitRetryDelayMs));
+  }
 
-  // ESP_ERROR_CHECK(twai_driver_install(&g_config, &t_config, &f_config));
-  // ESP_LOGI("dupsko", "Driver installed");
-  // ESP_ERROR_CHECK(twai_start());
-  // ESP_LOGI("dupsko", "Driver started");
+  if (!handler.isCommunicationInitialized()) {
+    ESP_LOGE(TAG_CMP, "ECU initialization failed after %d retries", kMaxInitRetries);
+    return;
+  }
+
+  handler.loadAvailability();
+  ESP_LOGI(TAG_CMP, "Availability loaded");
+  handler.printAvailableCommands();
+  handler.printAvailableForDataFrame();
 }
 
 void setup() {
-
-  const auto debugSerialBaudRate = 115200;
-  Serial.begin(debugSerialBaudRate);
-  while (!Serial) {
-    // Wait for serial port to connect.
-  };
-  debugSerialCommunicator.println("debugSerialCommunicator ready");
+  ESP_LOGI(TAG_CMP, "debugSerialCommunicator ready");
 
   ESP_ERROR_CHECK(twai_driver_install(&g_config, &t_config, &f_config));
-  ESP_LOGI("dupsko", "Driver installed");
+  ESP_LOGI(TAG_CMP, "Driver installed");
   ESP_ERROR_CHECK(twai_start());
-  ESP_LOGI("dupsko", "Driver started");
+  ESP_LOGI(TAG_CMP, "Driver started");
 
   requestHandlerInit(requestHandler);
-  debugSerialCommunicator.println("Request handler ready");
+  ESP_LOGI(TAG_CMP, "Request handler ready");
 }
 
 void loop() {

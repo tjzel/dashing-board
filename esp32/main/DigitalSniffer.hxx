@@ -1,10 +1,12 @@
 #ifndef DIGITAL_SNIFFER_HPP
 #define DIGITAL_SNIFFER_HPP
 
-#include <Arduino.h>
 #include <Communicators.hxx>
-#include <HardwareSerial.h>
 #include <SerialCommunicator.hxx>
+
+#include <esp_log.h>
+
+static const char *TAG_DS = "digital_sniffer";
 
 class DigitalSniffer {
 public:
@@ -12,12 +14,6 @@ public:
     const auto byte = comm_.read();
     if (byte > -1) {
       debugComm_.print(byte);
-      // if (std::isalpha(static_cast<unsigned char>(byte))) {
-      //   debugComm_.print(std::string{' ', static_cast<char>(byte)});
-      // }
-      // debugComm_.println();
-    } else {
-      // debugComm_.println("No data");
     }
   }
 
@@ -29,23 +25,14 @@ private:
   DebugSerialCommunicator &debugComm_;
 };
 
-constexpr auto serialCommunicatorNumber = 2;
-constexpr auto serialCommunicatorRx = GPIO_NUM_25;
-constexpr auto serialCommunicatorTx = GPIO_NUM_26;
+static constexpr gpio_num_t kSnifferRx = GPIO_NUM_25;
+static constexpr gpio_num_t kSnifferTx = GPIO_NUM_26;
 
-DebugSerialCommunicator debugSerialCommunicator(Serial);
-SerialCommunicator serialCommunicator(serialCommunicatorNumber, serialCommunicatorRx,
-                                      serialCommunicatorTx, debugSerialCommunicator);
+DebugSerialCommunicator debugSerialCommunicator(UART_NUM_0);
+SerialCommunicator serialCommunicator(UART_NUM_2, kSnifferRx, kSnifferTx, debugSerialCommunicator);
 DigitalSniffer digitalSniffer(serialCommunicator, debugSerialCommunicator);
 
-void setup() {
-  const auto debugSerialBaudRate = 115200;
-  Serial.begin(debugSerialBaudRate);
-  while (!Serial) {
-    // Wait for serial port to connect.
-  };
-  debugSerialCommunicator.println("debugSerialCommunicator ready");
-}
+void setup() { ESP_LOGI(TAG_DS, "debugSerialCommunicator ready"); }
 
 void loop() { digitalSniffer.sniff(); }
 

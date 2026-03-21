@@ -1,28 +1,20 @@
-#include <Arduino.h>
 #include <Communicators.hxx>
 #include <DataFrame.hxx>
 #include <DiagnosticCommands.hxx>
 #include <RequestHandler.hxx>
 #include <SerialCommunicator.hxx>
 
-constexpr auto serialCommunicatorNumber = 2;
-constexpr auto serialCommunicatorRx = GPIO_NUM_25;
-constexpr auto serialCommunicatorTx = GPIO_NUM_27;
+#include <esp_log.h>
 
-DebugSerialCommunicator debugSerialCommunicator(Serial);
-SerialCommunicator serialCommunicator(sniffSerialNumber, sniffRx, sniffTx, debugSerialCommunicator);
+static const char *TAG_SN = "sniffer";
+
+static constexpr gpio_num_t kSnifferRx = GPIO_NUM_25;
+static constexpr gpio_num_t kSnifferTx = GPIO_NUM_27;
+
+DebugSerialCommunicator debugSerialCommunicator(UART_NUM_0);
+SerialCommunicator serialCommunicator(UART_NUM_2, kSnifferRx, kSnifferTx, debugSerialCommunicator);
 RequestHandler requestHandler(serialCommunicator, debugSerialCommunicator);
 
-void setup() {
-  const auto debugSerialBaudRate = 115200;
-  Serial.begin(debugSerialBaudRate);
-  while (!Serial) {
-    // Wait for serial port to connect.
-  };
-  debugSerialCommunicator.println("debugSerialCommunicator ready");
-
-  requestHandlerInit(requestHandler);
-  serialBT.begin("DashingBoard");
-}
+void setup() { ESP_LOGI(TAG_SN, "debugSerialCommunicator ready"); }
 
 void loop() { requestHandler.sniff(); }

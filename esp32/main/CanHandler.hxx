@@ -1,19 +1,20 @@
 #ifndef CAN_HANDLER_HPP
 #define CAN_HANDLER_HPP
 
-#include <Arduino.h>
 #include <BLEDataServer.hxx>
-#include <BluetoothSerial.h>
 #include <Communicators.hxx>
+#include <DataFrame.hxx>
 #include <DiagnosticCommands.hxx>
-#include <HardwareSerial.h>
-#include <RequestHandler.hxx>
 #include <SerialCommunicator.hxx>
+
 #include <cstdint>
 #include <driver/twai.h>
-#include <esp32-hal.h>
-#include <esp_err.h>
+#include <esp_log.h>
+#include <esp_timer.h>
 #include <hal/twai_types.h>
+#include <string>
+
+static const char *TAG_CH = "can_handler";
 
 static const twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 static const twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();
@@ -29,29 +30,25 @@ static const twai_general_config_t g_config = {
     .alerts_enabled = TWAI_ALERT_NONE,
     .clkout_divider = 0,
 };
-DebugSerialCommunicator debugSerialCommunicator(Serial);
+
+DebugSerialCommunicator debugSerialCommunicator(UART_NUM_0);
 
 BLEDataServer *bleServer = nullptr;
 
 void setup() {
-  const auto debugSerialBaudRate = 115200;
-  Serial.begin(debugSerialBaudRate);
-  while (!Serial) {
-    // Wait for serial port to connect.
-  };
-  debugSerialCommunicator.println("debugSerialCommunicator ready");
+  ESP_LOGI(TAG_CH, "debugSerialCommunicator ready");
 
   bleServer = BLEDataServer::createServer();
-  debugSerialCommunicator.println("BLE server ready");
+  ESP_LOGI(TAG_CH, "BLE server ready");
 
   ESP_ERROR_CHECK(twai_driver_install(&g_config, &t_config, &f_config));
-  ESP_LOGI("dupsko", "Driver installed");
+  ESP_LOGI(TAG_CH, "Driver installed");
   ESP_ERROR_CHECK(twai_start());
-  ESP_LOGI("dupsko", "Driver started");
+  ESP_LOGI(TAG_CH, "Driver started");
 }
 
-const auto speedID = 673;
-const auto rpmID = 292;
+static constexpr uint32_t speedID = 673;
+static constexpr uint32_t rpmID = 292;
 
 int lastSpeed = 0;
 int lastRpm = 0;
@@ -63,17 +60,18 @@ void loop() {
   ESP_ERROR_CHECK_WITHOUT_ABORT(twai_receive(&rx_message, portMAX_DELAY));
   bool hasUpdated = false;
   if (rx_message.identifier == speedID) {
-    lastSpeed = ((static_cast<uint32_t>(rx_message.data[1]) +
-                  ((static_cast<uint32_t>(rx_message.data[0])) * 256))) /
-                6.64;
-    debugSerialCommunicator.println(std::to_string(micros()) + " speed " +
-                                    std::to_string(lastSpeed));
+    lastSpeed = static_cast<int>((static_cast<uint32_t>(rx_message.data[1]) +
+                                  (static_cast<uint32_t>(rx_message.data[0]) * 256)) /
+                                 6.64);
+    uint64_t now = esp_timer_get_time();
+    debugSerialCommunicator.println(std::to_string(now) + " speed " + std::to_string(lastSpeed));
     hasUpdated = true;
   } else if (rx_message.identifier == rpmID) {
-    lastRpm = ((static_cast<uint32_t>(rx_message.data[2]) +
-                ((static_cast<uint32_t>(rx_message.data[1])) * 256))) /
-              4;
-    debugSerialCommunicator.println(std::to_string(micros()) + " rpm " + std::to_string(lastRpm));
+    lastRpm = static_cast<int>((static_cast<uint32_t>(rx_message.data[2]) +
+                                (static_cast<uint32_t>(rx_message.data[1]) * 256)) /
+                               4);
+    uint64_t now = esp_timer_get_time();
+    debugSerialCommunicator.println(std::to_string(now) + " rpm " + std::to_string(lastRpm));
     hasUpdated = true;
   }
 
