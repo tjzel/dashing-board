@@ -5,7 +5,8 @@
 // #include <CanHandler.hxx>
 // #include <CanHandlerDisplay.hxx>
 // #include <SerialHandlerBLE.hxx>
-#include <SerialHandlerDisplay.hxx>
+// #include <SerialHandlerDisplay.hxx>
+#include <Obd2CanHandlerDisplay.hxx>
 
 extern "C" void app_main() {
   setup();
